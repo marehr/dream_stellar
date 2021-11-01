@@ -8,3 +8,6 @@
 [submodule "lib/valik"]
 	path = lib/valik
 	url = https://github.com/eaasna/valik
+[submodule "lib/shopping_cart_queue"]
+	path = lib/shopping_cart_queue
+	url = https://github.com/marehr/shopping_cart_queue
