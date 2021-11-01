@@ -5,3 +5,6 @@
 	path = lib/seqan3
 	url = https://github.com/seqan/seqan3.git
 	branch = master
+[submodule "lib/valik"]
+	path = lib/valik
+	url = https://github.com/eaasna/valik
