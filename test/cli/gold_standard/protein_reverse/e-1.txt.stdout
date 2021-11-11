@@ -1,0 +1,34 @@
+I/O options:
+  database file   : 512_simSeq1_e-1.fa
+  query file      : 512_simSeq2_e-1.fa
+  alphabet        : protein
+  output file     : protein_reverse/e-1.txt
+  output format   : txt
+
+User specified parameters:
+  minimal match length             : 50
+  maximal error rate (epsilon)     : 0.1
+  maximal x-drop                   : 10
+  k-mer (q-gram) length            : 7
+  search forward strand            : no
+  search reverse complement        : yes
+
+  verification strategy            : exact
+  maximal number of matches        : 5000
+  duplicate removal every          : 10000
+
+Calculated parameters:
+  s^min        : 8
+  threshold    : 9
+  distance cut : 64
+  delta        : 16
+  overlap      : 7
+
+Loaded 1 query sequence.
+Loaded 1 database sequence.
+
+Constructing index...
+
+Aligning all query sequences to database sequence...
+
+# Eps-matches     : 0

@@ -1,0 +1,41 @@
+I/O options:
+  database file   : 512_simSeq1_75e-3.fa
+  query file      : 512_simSeq2_75e-3.fa
+  alphabet        : dna
+  output file     : dna_both/75e-3.txt
+  output format   : txt
+
+User specified parameters:
+  minimal match length             : 50
+  maximal error rate (epsilon)     : 0.075
+  maximal x-drop                   : 10
+  k-mer (q-gram) length            : 7
+  search forward strand            : yes
+  search reverse complement        : yes
+
+  verification strategy            : exact
+  maximal number of matches        : 5000
+  duplicate removal every          : 10000
+
+Calculated parameters:
+  s^min        : 10
+  threshold    : 20
+  distance cut : 68
+  delta        : 16
+  overlap      : 6
+
+Loaded 1 query sequence.
+Loaded 1 database sequence.
+
+Constructing index...
+
+Aligning all query sequences to database sequence...
+  seq1 length=1000000 numMatches=500 errorRate=0.075 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 712
+    Longest hit       : 242
+    Avg hit length    : 118
+  seq1 length=1000000 numMatches=500 errorRate=0.075 matchMinLength=50 matchMaxLength=200, complement
+
+# Eps-matches     : 500
+Longest eps-match : 219
+Avg match length  : 131
