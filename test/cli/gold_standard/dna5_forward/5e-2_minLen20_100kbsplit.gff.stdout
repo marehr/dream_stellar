@@ -1,0 +1,79 @@
+I/O options:
+  database file   : 512_simSeq1_5e-2_100kbsplit.fa
+  query file      : 512_simSeq2_5e-2_100kbsplit.fa
+  alphabet        : dna5
+  output file     : dna5_forward/5e-2_minLen20_100kbsplit.gff
+  output format   : gff
+
+User specified parameters:
+  minimal match length             : 20
+  maximal error rate (epsilon)     : 0.05
+  maximal x-drop                   : 10
+  k-mer (q-gram) length            : 7
+  search forward strand            : yes
+  search reverse complement        : no
+
+  verification strategy            : exact
+  maximal number of matches        : 5000
+  duplicate removal every          : 10000
+
+Calculated parameters:
+  s^min        : 10
+  threshold    : 7
+  distance cut : 20
+  delta        : 16
+  overlap      : 1
+
+Loaded 10 query sequences.
+Loaded 10 database sequences.
+
+All matches matches resulting from your search have an E-value of: 
+        5.56469 or smaller  (match score = 1, error penalty = -2)
+
+Constructing index...
+
+Aligning all query sequences to database sequence...
+  seq1::0:100000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1496
+    Longest hit       : 192
+    Avg hit length    : 18
+  seq1::100000:200000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1482
+    Longest hit       : 196
+    Avg hit length    : 17
+  seq1::200000:300000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1480
+    Longest hit       : 202
+    Avg hit length    : 17
+  seq1::300000:400000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1380
+    Longest hit       : 197
+    Avg hit length    : 17
+  seq1::400000:500000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1497
+    Longest hit       : 195
+    Avg hit length    : 17
+  seq1::500000:600000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1500
+    Longest hit       : 194
+    Avg hit length    : 18
+  seq1::600000:700000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1485
+    Longest hit       : 198
+    Avg hit length    : 18
+  seq1::700000:800000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1491
+    Longest hit       : 198
+    Avg hit length    : 18
+  seq1::800000:900000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1475
+    Longest hit       : 200
+    Avg hit length    : 18
+  seq1::900000:1000000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
+    # SWIFT hits      : 1433
+    Longest hit       : 194
+    Avg hit length    : 19
+
+# Eps-matches     : 604
+Longest eps-match : 213
+Avg match length  : 109

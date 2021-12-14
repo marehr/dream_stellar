@@ -121,7 +121,8 @@ jobs:
           header_test_flag=$(echo "${{ env.REPOSITORY_NAME }}_HEADER_TEST_ONLY" | tr '[:lower:]' '[:upper:]')
           cmake ../${{ env.REPOSITORY_NAME }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                                               -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}" \
-                                              -D${header_test_flag}=${{ matrix.build == 'header' && 'ON' || 'OFF'}}
+                                              -D${header_test_flag}=${{ matrix.build == 'header' && 'ON' || 'OFF'}} \
+                                              -DSTELLAR_HEADER_TEST_ONLY=${{ matrix.build == 'header' && 'ON' || 'OFF'}}
 
       - name: Build tests
         if: ${{!matrix.skip_build_tests}}

@@ -1,0 +1,34 @@
+I/O options:
+  database file   : 512_simSeq1_5e-2.fa
+  query file      : 512_simSeq2_5e-2.fa
+  alphabet        : char
+  output file     : char_reverse/minLen150.txt
+  output format   : txt
+
+User specified parameters:
+  minimal match length             : 150
+  maximal error rate (epsilon)     : 0.05
+  maximal x-drop                   : 10
+  k-mer (q-gram) length            : 7
+  search forward strand            : no
+  search reverse complement        : yes
+
+  verification strategy            : exact
+  maximal number of matches        : 5000
+  duplicate removal every          : 10000
+
+Calculated parameters:
+  s^min        : 17
+  threshold    : 95
+  distance cut : 199
+  delta        : 16
+  overlap      : 14
+
+Loaded 1 query sequence.
+Loaded 1 database sequence.
+
+Constructing index...
+
+Aligning all query sequences to database sequence...
+
+# Eps-matches     : 0

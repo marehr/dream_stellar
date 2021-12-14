@@ -21,209 +21,288 @@ sys.path.insert(0, path)
 
 import seqan.app_tests as app_tests
 
-def main(source_base, binary_base):
+testsConfig = {
+    'e-1': [
+        '-e', '0.1', # --epsilon
+        '-l', '50', # --minLength
+        '-x', '10', # --xDrop
+        '-k', '7', # --kmer
+        '-n', '5000', # --numMatches
+        '-s', '10000', # --sortThresh
+        '-v', # --verbose
+        '-t', # --no-rt # for stable output
+    ],
+    '5e-2' : [
+        '--epsilon', '0.05',
+        '--minLength', '50',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ],
+    '25e-3' : [
+        '--epsilon', '0.025',
+        '--minLength', '50',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ],
+    '75e-3': [
+        '--epsilon', '0.075',
+        '--minLength', '50',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ],
+    'e-4' : [
+        '--epsilon', '0.0001',
+        '--minLength', '50',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ],
+    'minLen20' : [
+        '--epsilon', '0.05',
+        '--minLength', '20',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ],
+    'minLen150' : [
+        '--epsilon', '0.05',
+        '--minLength', '150',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ],
+    '5e-2_minLen20_100kbsplit' : [
+        '--epsilon', '0.05',
+        '--minLength', '20',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--no-rt', # for stable output
+    ]
+}
+
+class StellarTestSuite():
+
+    def __init__(self, source_base, binary_base):
+        self.shortFlags = {
+            'forward': ['-f'],
+            'reverse': ['-r'],
+            'both': [],
+            'dna': ['-a', 'dna'],
+            'dna5': [], # in short flags we let dna5 be empty, since it the default value
+            'protein': ['-a', 'protein'],
+            'char': ['-a', 'char']
+        }
+
+        self.longFlags = {
+            'forward': ['--forward'],
+            'reverse': ['--reverse'],
+            'both': [],
+            'dna': ['--alphabet', 'dna'],
+            'dna5': ['--alphabet', 'dna5'],
+            'protein': ['--alphabet', 'protein'],
+            'char': ['--alphabet', 'char']
+        }
+
+        # stellar/tests directory
+        self.source_base = source_base
+        self.binary_base = binary_base
+        self.app_test_dir = os.path.join(source_base, 'test/cli') # original: 'apps/stellar/tests'
+        self.relative_binary_path = "." # original: 'apps/stellar'
+
+        self.pathHelper = app_tests.TestPathHelper(self.source_base, self.binary_base, self.app_test_dir)  # tests dir
+
+        self.pathHelper.outFile('-')  # To ensure that the out path is set.
+
+        # ============================================================
+        # Built TestConf list.
+        # ============================================================
+
+        # Build list with TestConf objects, analoguely to how the output
+        # was generated in generate_outputs.sh.
+        self.tests = []
+
+    def addTest(self, executable, errorRate, testName, alphabet, databaseStrand, outputExt, flags = None):
+        flags = self.longFlags if flags is None else flags
+
+        executable_file = app_tests.autolocateBinary(self.binary_base, self.relative_binary_path, executable)
+
+        tmpSubDir = "{alphabet}_{databaseStrand}/".format(alphabet = alphabet, databaseStrand = databaseStrand)
+        expectDataDir = self.pathHelper.inFile('gold_standard/%s' % tmpSubDir)
+
+        testFormat = {
+            'errorRate': errorRate,
+            'testName': testName,
+            'ext': outputExt,
+            'expectDataDir': expectDataDir,
+            'tmpSubDir': tmpSubDir
+        }
+
+        # We prepare a list of transforms to apply to the output files.  This is
+        # used to strip the input/output paths from the programs' output to
+        # make it more canonical and host independent.
+        transforms = self.outputTransforms()
+
+        test = app_tests.TestConf(
+            program = executable_file,
+            redir_stdout = self.pathHelper.outFile('{testName}.{ext}.stdout'.format(**testFormat), tmpSubDir),
+            args =
+                flags.get(alphabet, []) +
+                flags.get(databaseStrand, []) +
+                testsConfig[testName] +
+                [
+                    '--out', self.pathHelper.outFile('{testName}.{ext}'.format(**testFormat), tmpSubDir),
+                    self.pathHelper.inFile('512_simSeq1_{errorRate}.fa'.format(**testFormat)),
+                    self.pathHelper.inFile('512_simSeq2_{errorRate}.fa'.format(**testFormat))
+                ],
+            to_diff =
+            [
+                (
+                    self.pathHelper.inFile('{expectDataDir}/{testName}.{ext}.stdout'.format(**testFormat)),
+                    self.pathHelper.outFile('{testName}.{ext}.stdout'.format(**testFormat), tmpSubDir),
+                    transforms
+                ),
+                (
+                    self.pathHelper.inFile('{expectDataDir}/{testName}.{ext}'.format(**testFormat)),
+                    self.pathHelper.outFile('{testName}.{ext}'.format(**testFormat), tmpSubDir),
+                    transforms
+                )
+            ]
+        )
+
+        self.tests.append(test)
+
+    def outputTransforms(self):
+        return [
+            app_tests.ReplaceTransform(os.path.join(self.pathHelper.source_base_path, self.app_test_dir) + os.sep, '', right=True),
+            app_tests.ReplaceTransform(self.pathHelper.temp_dir + os.sep, '', right=True),
+            app_tests.NormalizeScientificExponentsTransform(),
+        ]
+
+    def runTests(self):
+        print('Executing test for stellar')
+        print('=========================')
+        print()
+
+        # ============================================================
+        # Execute the tests.
+        # ============================================================
+        failures = 0
+        try:
+            for test in self.tests:
+                print(' '.join([test.program] + test.args))
+                res = app_tests.runTest(test)
+                # Output to the user.
+                if res:
+                     print('OK')
+                else:
+                    failures += 1
+                    print('FAILED')
+        except Exception as e:
+            raise e # This exception is saved, then finally is executed, and then the exception is raised.
+        finally:
+            # Cleanup.
+            self.pathHelper.deleteTempDir()
+
+        print('==============================')
+        print('     total tests: %d' % len(self.tests))
+        print('    failed tests: %d' % failures)
+        print('successful tests: %d' % (len(self.tests) - failures))
+        print('==============================')
+
+        return failures != 0
+
+
+def main(source_base, binary_base, alphabets, database_strands, output_extensions):
     """Main entry point of the script."""
 
-    print('Executing test for stellar')
-    print('=========================')
-    print()
+    testSuite = StellarTestSuite(source_base, binary_base)
 
-    # stellar/tests directory
-    app_test_dir=os.path.join(source_base, 'test/cli') # original: 'apps/stellar/tests'
-    relative_binary_path="." # original: 'apps/stellar'
-
-    ph = app_tests.TestPathHelper(
-        source_base, binary_base,
-        app_test_dir)  # tests dir
-
-    # ============================================================
-    # Auto-detect the binary path.
-    # ============================================================
-
-    path_to_program = app_tests.autolocateBinary(
-      binary_base, relative_binary_path, 'stellar')
-
-    # ============================================================
-    # Built TestConf list.
-    # ============================================================
-
-    # Build list with TestConf objects, analoguely to how the output
-    # was generated in generate_outputs.sh.
-    conf_list = []
-
-    # We prepare a list of transforms to apply to the output files.  This is
-    # used to strip the input/output paths from the programs' output to
-    # make it more canonical and host independent.
-    ph.outFile('-')  # To ensure that the out path is set.
-    transforms = [
-        app_tests.ReplaceTransform(os.path.join(ph.source_base_path, app_test_dir) + os.sep, '', right=True),
-        app_tests.ReplaceTransform(ph.temp_dir + os.sep, '', right=True),
-        app_tests.NormalizeScientificExponentsTransform(),
-        ]
+    print ("alphabets:", alphabets)
+    print ("database_strands:", database_strands)
+    print ("output_extensions:", output_extensions)
+    print ()
 
     # ============================================================
     # Run STELLAR.
     # ============================================================
 
-    # Error rate 0.1:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('e-1.stdout'),
-        args=['-e', '0.1', '-l', '50', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('e-1.gff'),
-              ph.inFile('512_simSeq1_e-1.fa'),
-              ph.inFile('512_simSeq2_e-1.fa')],
-        to_diff=[(ph.inFile('e-1.stdout'),
-                  ph.outFile('e-1.stdout'),
-                  transforms),
-                 (ph.inFile('e-1.gff'),
-                  ph.outFile('e-1.gff'),
-                  transforms)])
-    conf_list.append(conf)
+    for alphabet in alphabets:
+        for databaseStrand in database_strands:
+            for outputExt in output_extensions:
 
-    # Error rate 0.05:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('5e-2.stdout'),
-        args=['-e', '0.05', '-l', '50', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('5e-2.gff'),
-              ph.inFile('512_simSeq1_5e-2.fa'),
-              ph.inFile('512_simSeq2_5e-2.fa')],
-        to_diff=[(ph.inFile('5e-2.stdout'),
-                  ph.outFile('5e-2.stdout'),
-                  transforms),
-                 (ph.inFile('5e-2.gff'),
-                  ph.outFile('5e-2.gff'),
-                  transforms)])
-    conf_list.append(conf)
+                # Error rate 0.1:
+                testSuite.addTest('stellar', errorRate = 'e-1', testName = 'e-1', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt, flags = testSuite.shortFlags)
 
-    # Error rate 0.25:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('25e-3.stdout'),
-        args=['-e', '0.025', '-l', '50', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('25e-3.gff'),
-              ph.inFile('512_simSeq1_25e-3.fa'),
-              ph.inFile('512_simSeq2_25e-3.fa')],
-        to_diff=[(ph.inFile('25e-3.stdout'),
-                  ph.outFile('25e-3.stdout'),
-                  transforms),
-                 (ph.inFile('25e-3.gff'),
-                  ph.outFile('25e-3.gff'),
-                  transforms)])
-    conf_list.append(conf)
+                # Error rate 0.05:
+                testSuite.addTest('stellar', errorRate = '5e-2', testName = '5e-2', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    # Error rate 0.75:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('75e-3.stdout'),
-        args=['-e', '0.075', '-l', '50', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('75e-3.gff'),
-              ph.inFile('512_simSeq1_75e-3.fa'),
-              ph.inFile('512_simSeq2_75e-3.fa')],
-        to_diff=[(ph.inFile('75e-3.stdout'),
-                  ph.outFile('75e-3.stdout'),
-                  transforms),
-                 (ph.inFile('75e-3.gff'),
-                  ph.outFile('75e-3.gff'),
-                  transforms)])
-    conf_list.append(conf)
+                # Error rate 0.25:
+                testSuite.addTest('stellar', errorRate = '25e-3', testName = '25e-3', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    # Error rate 0.0001:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('e-4.stdout'),
-        args=['-e', '0.0001', '-l', '50', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('e-4.gff'),
-              ph.inFile('512_simSeq1_e-4.fa'),
-              ph.inFile('512_simSeq2_e-4.fa')],
-        to_diff=[(ph.inFile('e-4.stdout'),
-                  ph.outFile('e-4.stdout'),
-                  transforms),
-                 (ph.inFile('e-4.gff'),
-                  ph.outFile('e-4.gff'),
-                  transforms)])
-    conf_list.append(conf)
+                # Error rate 0.75:
+                testSuite.addTest('stellar', errorRate = '75e-3', testName = '75e-3', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    # Minimal length: 20, Error rate 0.05:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('minLen20.stdout'),
-        args=['-e', '0.05', '-l', '20',
-              '-x', '10', '-k', '7', '-n', '5000', '-s', '10000', '-f', '-v',
-              '-t',
-              '-o', ph.outFile('minLen20.gff'),
-              ph.inFile('512_simSeq1_5e-2.fa'),
-              ph.inFile('512_simSeq2_5e-2.fa')],
-        to_diff=[(ph.inFile('minLen20.stdout'),
-                  ph.outFile('minLen20.stdout'),
-                  transforms),
-                 (ph.inFile('minLen20.gff'),
-                  ph.outFile('minLen20.gff'),
-                  transforms)])
-    conf_list.append(conf)
+                # Error rate 0.0001:
+                testSuite.addTest('stellar', errorRate = 'e-4', testName = 'e-4', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    # Minimal length: 150, Error rate 0.05:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('minLen150.stdout'),
-        args=['-e', '0.05', '-l', '150', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('minLen150.gff'),
-              ph.inFile('512_simSeq1_5e-2.fa'),
-              ph.inFile('512_simSeq2_5e-2.fa')],
-        to_diff=[(ph.inFile('minLen150.stdout'),
-                  ph.outFile('minLen150.stdout'),
-                  transforms),
-                 (ph.inFile('minLen150.gff'),
-                  ph.outFile('minLen150.gff'),
-                  transforms)])
-    conf_list.append(conf)
+                # Minimal length: 20, Error rate 0.05:
+                testSuite.addTest('stellar', errorRate = '5e-2', testName = 'minLen20', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    # Output format text:
-    conf = app_tests.TestConf(
-        program=path_to_program,
-        redir_stdout=ph.outFile('5e-2txt.stdout'),
-        args=['-e', '0.05', '-l', '50', '-x', '10', '-k', '7', '-n', '5000',
-              '-s', '10000', '-f', '-v', '-t',
-              '-o', ph.outFile('5e-2.txt'),
-              ph.inFile('512_simSeq1_5e-2.fa'),
-              ph.inFile('512_simSeq2_5e-2.fa')],
-        to_diff=[(ph.inFile('5e-2txt.stdout'),
-                  ph.outFile('5e-2txt.stdout'),
-                  transforms),
-                 (ph.inFile('5e-2.txt'),
-                  ph.outFile('5e-2.txt'),
-                  transforms)])
-    conf_list.append(conf)
+                # Minimal length: 150, Error rate 0.05:
+                testSuite.addTest('stellar', errorRate = '5e-2', testName = 'minLen150', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    # ============================================================
-    # Execute the tests.
-    # ============================================================
-    failures = 0
-    for conf in conf_list:
-        print(' '.join(['stellar'] + conf.args))
-        res = app_tests.runTest(conf)
-        # Output to the user.
-        if res:
-             print('OK')
-        else:
-            failures += 1
-            print('FAILED')
+                # Minimal length: 20, Error rate 0.05: but the original sequence is split after every 100kb.
+                testSuite.addTest('stellar', errorRate = '5e-2_100kbsplit', testName = '5e-2_minLen20_100kbsplit', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
-    print('==============================')
-    print('     total tests: %d' % len(conf_list))
-    print('    failed tests: %d' % failures)
-    print('successful tests: %d' % (len(conf_list) - failures))
-    print('==============================')
     # Compute and return return code.
-    return failures != 0
-
+    return testSuite.runTests()
 
 if __name__ == '__main__':
-    sys.exit(app_tests.main(main))
+    import argparse
+    parser = argparse.ArgumentParser(add_help=False)
+
+    # --alphabets dna protein
+    alphabets = ['dna', 'dna5', 'protein', 'char']
+    parser.add_argument('--alphabets', nargs='*', default = alphabets, choices = alphabets)
+
+    # --database-strands forward both
+    database_strands = ['forward', 'reverse', 'both']
+    parser.add_argument('--database-strands', nargs='*', default = database_strands, choices = database_strands)
+
+    # --output-extensions txt gff
+    output_extensions = ['gff', 'txt']
+    parser.add_argument('--output-extensions', nargs='*', default = output_extensions, choices = output_extensions)
+
+    (options, remaining_args) = parser.parse_known_args()
+
+    # propagate remaining_args s.t. app_tests.main can use it
+    sys.argv = [sys.argv[0]] + remaining_args
+
+    sys.exit(app_tests.main(main,
+                            alphabets = options.alphabets,
+                            database_strands = options.database_strands,
+                            output_extensions = options.output_extensions))
