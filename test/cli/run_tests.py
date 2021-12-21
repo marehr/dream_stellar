@@ -30,7 +30,7 @@ testsConfig = {
         '-n', '5000', # --numMatches
         '-s', '10000', # --sortThresh
         '-v', # --verbose
-        '-t', # --no-rt # for stable output
+        '-no-rt', # --suppress-runtime-printing # for stable output
     ],
     '5e-2' : [
         '--epsilon', '0.05',
@@ -40,7 +40,7 @@ testsConfig = {
         '--numMatches', '5000',
         '--sortThresh', '10000',
         '--verbose',
-        '--no-rt', # for stable output
+        '--suppress-runtime-printing', # for stable output
     ],
     '25e-3' : [
         '--epsilon', '0.025',
@@ -50,7 +50,7 @@ testsConfig = {
         '--numMatches', '5000',
         '--sortThresh', '10000',
         '--verbose',
-        '--no-rt', # for stable output
+        '--suppress-runtime-printing', # for stable output
     ],
     '75e-3': [
         '--epsilon', '0.075',
@@ -60,7 +60,7 @@ testsConfig = {
         '--numMatches', '5000',
         '--sortThresh', '10000',
         '--verbose',
-        '--no-rt', # for stable output
+        '--suppress-runtime-printing', # for stable output
     ],
     'e-4' : [
         '--epsilon', '0.0001',
@@ -70,7 +70,7 @@ testsConfig = {
         '--numMatches', '5000',
         '--sortThresh', '10000',
         '--verbose',
-        '--no-rt', # for stable output
+        '--suppress-runtime-printing', # for stable output
     ],
     'minLen20' : [
         '--epsilon', '0.05',
@@ -80,7 +80,7 @@ testsConfig = {
         '--numMatches', '5000',
         '--sortThresh', '10000',
         '--verbose',
-        '--no-rt', # for stable output
+        '--suppress-runtime-printing', # for stable output
     ],
     'minLen150' : [
         '--epsilon', '0.05',
@@ -90,7 +90,17 @@ testsConfig = {
         '--numMatches', '5000',
         '--sortThresh', '10000',
         '--verbose',
-        '--no-rt', # for stable output
+        '--suppress-runtime-printing', # for stable output
+    ],
+    '5e-2_minLen20_100kbsplit' : [
+        '--epsilon', '0.05',
+        '--minLength', '20',
+        '--xDrop', '10',
+        '--kmer', '7',
+        '--numMatches', '5000',
+        '--sortThresh', '10000',
+        '--verbose',
+        '--suppress-runtime-printing', # for stable output
     ]
 }
 
@@ -264,6 +274,9 @@ def main(source_base, binary_base, alphabets, database_strands, output_extension
 
                 # Minimal length: 150, Error rate 0.05:
                 testSuite.addTest('stellar', errorRate = '5e-2', testName = 'minLen150', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
+
+                # Minimal length: 20, Error rate 0.05: but the original sequence is split after every 100kb.
+                testSuite.addTest('stellar', errorRate = '5e-2_100kbsplit', testName = '5e-2_minLen20_100kbsplit', alphabet = alphabet, databaseStrand = databaseStrand, outputExt = outputExt)
 
     # Compute and return return code.
     return testSuite.runTests()

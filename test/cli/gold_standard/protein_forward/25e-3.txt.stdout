@@ -16,6 +16,7 @@ User specified parameters:
   verification strategy            : exact
   maximal number of matches        : 5000
   duplicate removal every          : 10000
+  threads                          : 1
 
 Calculated parameters:
   s^min        : 25
