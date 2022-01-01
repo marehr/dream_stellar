@@ -4,3 +4,4 @@ add_subdirectory (test)
 
 add_api_test (stellar_database_segment_test.cpp)
 add_api_test (stellar_index_test.cpp)
+add_api_test (query_matches_test.cpp)
