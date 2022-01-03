@@ -177,6 +177,13 @@ struct StellarComputeStatistics
 
     size_t maxLength = 0;
     size_t totalLength = 0;
+
+    void mergeIn(StellarComputeStatistics const & statistics)
+    {
+        this->numSwiftHits += statistics.numSwiftHits;
+        this->totalLength += statistics.totalLength;
+        this->maxLength = std::max<size_t>(this->maxLength, statistics.maxLength);
+    }
 };
 
 struct StellarOutputStatistics
