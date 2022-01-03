@@ -142,7 +142,8 @@ void maskOverlaps(String<StellarMatch<TSequence const, TId> > & matches, TSize c
 
     for (; it != end(matches); ++it)
     {
-        if ((*it).id == TMatch::INVALID_ID) continue;
+        TMatch & current_match = *it;
+        if (current_match.id == TMatch::INVALID_ID) continue;
 
         TPos insertPos = 0;
 
@@ -150,35 +151,69 @@ void maskOverlaps(String<StellarMatch<TSequence const, TId> > & matches, TSize c
         TOverlapIter overlapIt = begin(overlaps);
         for (; overlapIt != end(overlaps); ++overlapIt)
         {
-            TMatch & o = matches[*overlapIt];
+            TMatch & overlap_match = matches[*overlapIt];
+
+            // TODO: Is this assert really true?
+            assert (overlap_match.begin1 <= current_match.begin1);
 
             // determine position for inserting *it into overlaps after checking
-            if ((*it).end1 < o.end1) insertPos++;
+            if (current_match.end1 < overlap_match.end1) insertPos++;
 
             // check if matches overlap in row0 - if not, then break
-            if (o.end1 <= (*it).begin1) break;
+            // row0: [ overlap_match ]
+            //                          [ current_match ]
+            if (overlap_match.end1 <= current_match.begin1) break;
+
+            // assert (current_match.begin1 < overlap_match.end1);
+
+            // either overlap:
+            // row0: [ overlap_match ]
+            //          [ current_match ]
+            //
+            // or containment:
+            // row0: [    overlap_match    ]
+            //          [ current_match ]
 
             // check if unique parts of the two matches in row0 are longer than minLength - if yes, then continue
-            if ((*it).begin1 - o.begin1 >= (TPos)minLength &&
-                (*it).end1 > o.end1 && (*it).end1 - o.end1 >= (TPos)minLength) continue;
+            if (current_match.begin1 - overlap_match.begin1 >= (TPos)minLength &&
+                current_match.end1 > overlap_match.end1 &&
+                current_match.end1 - overlap_match.end1 >= (TPos)minLength) continue;
+
+            // either begin position delta (ΔB) is smaller than minLength,
+            // row0: [ overlap_match ...
+            //          [ current_match ...
+            //       ^__^ : ΔB
+            //
+            // or current_match end position is before overlap_match end position (containment):
+            // row0: [    overlap_match    ]
+            //          [ current_match ]
+            //
+            // or end position delta (ΔE) is smaller than minLength:
+            // row0: [    overlap_match ]
+            //          [ current_match    ]
+            //                          ^__^ : ΔE
+
+            assert (current_match.begin1 - overlap_match.begin1 < (TPos)minLength ||
+                    current_match.end1 <= overlap_match.end1 ||
+                    current_match.end1 - overlap_match.end1 < (TPos)minLength);
 
             // check if matches overlap in row1 - if not, then continue
-            if (!checkOverlap(*it, o, minLength)) continue;
+            if (!checkOverlap(current_match, overlap_match, minLength)) continue;
 
             // check exact alignment columns for overlap
-            if (!_checkAlignColOverlap(o, *it, minLength)) continue;
+            if (!_checkAlignColOverlap(overlap_match, current_match, minLength)) continue;
 
             // set shorter match invalid
-            if (length(*it) > length(o))
-                o.id = TMatch::INVALID_ID;
+            if (length(overlap_match) < length(current_match))
+                overlap_match.id = TMatch::INVALID_ID;
             else
-                (*it).id = TMatch::INVALID_ID;
+                current_match.id = TMatch::INVALID_ID;
         }
 
         // remove all matches from overlaps that end earlier than current match begins
         resize(overlaps, position(overlapIt));
 
-        if ((*it).id != TMatch::INVALID_ID)
+        if (current_match.id != TMatch::INVALID_ID)
             insertValue(overlaps, insertPos, position(it));
     }
 
