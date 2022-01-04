@@ -51,7 +51,7 @@ Aligning all query sequences to database sequence...
     Longest hit       : 36
     Avg hit length    : 14
   seq1::400000:500000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200, complement
-    # SWIFT hits      : 1410
+    # SWIFT hits      : 1411
     Longest hit       : 34
     Avg hit length    : 14
   seq1::500000:600000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200, complement
