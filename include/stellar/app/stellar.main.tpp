@@ -31,6 +31,8 @@
 #include <stellar/stellar_index.hpp>
 #include <stellar/stellar_output.hpp>
 
+#include <stellar/parallel/compute_statistics_collection.hpp>
+
 #include <stellar/app/stellar.diagnostics.hpp>
 
 #include <stellar/app/stellar.diagnostics.tpp>
@@ -185,12 +187,15 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
     StringSet<QueryMatches<StellarMatch<TSequence const, TId> > > matches;
     resize(matches, length(queries));
 
-    #pragma omp parallel default(none) firstprivate(databaseStrand) shared(queries, databases, std::cout, options, swiftPattern, databaseIDs, matches)
+    StellarComputeStatisticsCollection computeStatistics{length(databases)};
+
+    #pragma omp parallel default(none) firstprivate(databaseStrand) shared(databases, options, swiftPattern, databaseIDs, matches, computeStatistics)
     {
         StringSet<QueryMatches<StellarMatch<TSequence const, TId> > > localMatches;
         resize(localMatches, length(matches));
 
         StellarOptions localOptions = options;
+        StellarComputeStatisticsPartialCollection localPartialStatistics{computeStatistics.size()};
 
         StellarSwiftPattern<TAlphabet> localSwiftPattern = swiftPattern;
 
@@ -199,14 +204,7 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
         {
             String<TAlphabet> const & database = databases[i];
             CharString const & databaseID = databaseIDs[i];
-
-            #pragma omp critical
-            {
-                std::cout << "  " << databaseID;
-                if (!databaseStrand)
-                    std::cout << ", complement";
-                std::cout << std::flush;
-            }
+            size_t const databaseRecordID = i;
 
             auto getQueryMatches = [&](auto const & pattern) -> QueryMatches<StellarMatch<TSequence const, TId> > &
             {
@@ -243,19 +241,35 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
             StellarComputeStatistics statistics
                 = _stellarOnOne(databaseSegment, localSwiftPattern, localOptions, isPatternDisabled, onAlignmentResult);
 
-            if (options.verbose)
-            {
-                _printStellarKernelStatistics(statistics);
-            }
-
-            std::cout << std::endl;
+            localPartialStatistics.updateByRecordID(databaseRecordID, statistics);
         }
 
         #pragma omp critical
         {
+            // linear in database count
+            computeStatistics.mergePartialIn(localPartialStatistics);
+            // linear in queries count
             _mergeMatchesIntoFirst(matches, localMatches);
         }
     } // parallel region - end
+
+    // standard output:
+    std::cerr << std::endl; // swift filter output is on same line
+    for (size_t i = 0; i < length(databases); ++i)
+    {
+        CharString const & databaseID = databaseIDs[i];
+        std::cout << "  " << databaseID;
+        if (!databaseStrand)
+            std::cout << ", complement";
+        std::cout << std::flush;
+
+        if (options.verbose)
+        {
+            StellarComputeStatistics const & statistics = computeStatistics[i];
+            _printStellarKernelStatistics(statistics);
+        }
+        std::cout << std::endl;
+    }
 
     for (size_t queryID = 0; queryID < length(matches); ++queryID)
     {
