@@ -30,8 +30,13 @@
 #include <stellar/stellar.hpp>
 #include <stellar/stellar_index.hpp>
 #include <stellar/stellar_output.hpp>
+#include <stellar/database_id_map.hpp>
 
 #include <stellar/parallel/compute_statistics_collection.hpp>
+
+#include <stellar/prefilter/no_query_prefilter.hpp>
+#include <stellar/prefilter/nsegment_database_agent_splitter.hpp>
+#include <stellar/prefilter/whole_database_agent_splitter.hpp>
 
 #include <stellar/app/stellar.diagnostics.hpp>
 
@@ -183,13 +188,27 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
 {
     using TSequence = String<TAlphabet>;
 
+    using TQueryFilter = StellarSwiftPattern<TAlphabet>;
+    // using TSplitter = WholeDatabaseAgentSplitter;
+    using TSplitter = NSegmentDatabaseAgentSplitter;
+    using TPrefilter = NoQueryPrefilter<TAlphabet, TQueryFilter, TSplitter>;
+    using TPrefilterAgent = typename TPrefilter::Agent;
+    using TDatabaseSegments = typename TPrefilter::TDatabaseSegments;
+
+    TPrefilter prefilter{databases, TQueryFilter{swiftPattern} /*copy pattern*/, TSplitter{2u}};
+
     // container for eps-matches
     StringSet<QueryMatches<StellarMatch<TSequence const, TId> > > matches;
     resize(matches, length(queries));
 
     StellarComputeStatisticsCollection computeStatistics{length(databases)};
 
-    #pragma omp parallel default(none) firstprivate(databaseStrand) shared(databases, options, swiftPattern, databaseIDs, matches, computeStatistics)
+    DatabaseIDMap<TAlphabet> databaseIDMap{databases, databaseIDs};
+
+    std::vector<TPrefilterAgent> prefilterAgents = prefilter.agents(options.threadCount, options.minLength);
+
+    #pragma omp parallel for num_threads(prefilterAgents.size()) default(none) firstprivate(databaseStrand) shared(std::cout, prefilterAgents, options, matches, databaseIDMap, computeStatistics)
+    for (TPrefilterAgent & agent: prefilterAgents)
     {
         StringSet<QueryMatches<StellarMatch<TSequence const, TId> > > localMatches;
         resize(localMatches, length(matches));
@@ -197,52 +216,51 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
         StellarOptions localOptions = options;
         StellarComputeStatisticsPartialCollection localPartialStatistics{computeStatistics.size()};
 
-        StellarSwiftPattern<TAlphabet> localSwiftPattern = swiftPattern;
-
-        #pragma omp for nowait
-        for (size_t i = 0; i < length(databases); ++i)
+        agent.prefilter([&](TDatabaseSegments const & databaseSegments, TQueryFilter localSwiftPattern)
         {
-            String<TAlphabet> const & database = databases[i];
-            CharString const & databaseID = databaseIDs[i];
-            size_t const databaseRecordID = i;
-
-            auto getQueryMatches = [&](auto const & pattern) -> QueryMatches<StellarMatch<TSequence const, TId> > &
+            for (StellarDatabaseSegment<TAlphabet> const & databaseSegment : databaseSegments)
             {
-                return value(localMatches, pattern.curSeqNo);
-            };
+                String<TAlphabet> const & database = databaseSegment.underlyingDatabase();
+                size_t const databaseRecordID = databaseIDMap.recordID(database);
 
-            auto isPatternDisabled = [&](StellarSwiftPattern<TAlphabet> & pattern) -> bool {
-                QueryMatches<StellarMatch<TSequence const, TId> > & queryMatches = getQueryMatches(pattern);
-                return queryMatches.disabled;
-            };
+                auto getQueryMatches = [&](auto const & pattern) -> QueryMatches<StellarMatch<TSequence const, TId> > &
+                {
+                    return value(localMatches, pattern.curSeqNo);
+                };
 
-            auto onAlignmentResult = [&](auto & alignment) -> bool {
-                QueryMatches<StellarMatch<TSequence const, TId> > & queryMatches = getQueryMatches(localSwiftPattern);
+                auto isPatternDisabled = [&](StellarSwiftPattern<TAlphabet> & pattern) -> bool {
+                    QueryMatches<StellarMatch<TSequence const, TId> > & queryMatches = getQueryMatches(pattern);
+                    return queryMatches.disabled;
+                };
 
-                StellarMatch<TSequence const, TId> match(alignment, databaseID, databaseStrand);
-                length(match);  // DEBUG: Contains assertion on clipping.
+                auto onAlignmentResult = [&](auto & alignment) -> bool {
+                    QueryMatches<StellarMatch<TSequence const, TId> > & queryMatches = getQueryMatches(localSwiftPattern);
 
-                // success
-                return _insertMatch(
-                    queryMatches,
-                    match,
-                    localOptions.minLength,
-                    localOptions.disableThresh,
-                    // compactThresh is basically an output-parameter; will be updated in kernel and propagated back
-                    // outside of this function, the reason why StellarOptions can't be passed as const to this function.
-                    // TODO: We might want to make this tied to the QueryMatches itself, as it should know then to consolidate
-                    // the matches
-                    localOptions.compactThresh,
-                    localOptions.numMatches
-                );
-            };
+                    TId const & databaseID = databaseIDMap.databaseIDs[databaseRecordID];
+                    StellarMatch<TSequence const, TId> match(alignment, databaseID, databaseStrand);
+                    length(match);  // DEBUG: Contains assertion on clipping.
 
-            StellarDatabaseSegment<TAlphabet> databaseSegment{database, 0u, length(database)};
-            StellarComputeStatistics statistics
-                = _stellarOnOne(databaseSegment, localSwiftPattern, localOptions, isPatternDisabled, onAlignmentResult);
+                    // success
+                    return _insertMatch(
+                        queryMatches,
+                        match,
+                        localOptions.minLength,
+                        localOptions.disableThresh,
+                        // compactThresh is basically an output-parameter; will be updated in kernel and propagated back
+                        // outside of this function, the reason why StellarOptions can't be passed as const to this function.
+                        // TODO: We might want to make this tied to the QueryMatches itself, as it should know then to consolidate
+                        // the matches
+                        localOptions.compactThresh,
+                        localOptions.numMatches
+                    );
+                };
 
-            localPartialStatistics.updateByRecordID(databaseRecordID, statistics);
-        }
+                StellarComputeStatistics statistics
+                    = _stellarOnOne(databaseSegment, localSwiftPattern, localOptions, isPatternDisabled, onAlignmentResult);
+
+                localPartialStatistics.updateByRecordID(databaseRecordID, statistics);
+            }
+        });
 
         #pragma omp critical
         {
