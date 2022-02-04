@@ -1,0 +1,4 @@
+cmake_minimum_required (VERSION 3.8)
+
+add_app_test (valik_local_prefilter_test.cpp)
+target_compile_definitions (valik_local_prefilter_test PUBLIC -DSTELLAR_MINIMISER_THRESHOLD_INLINE_SRC=1)
