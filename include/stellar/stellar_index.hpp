@@ -26,6 +26,8 @@
 
 #include <seqan/index.h>
 
+#include <seqan3/std/span>
+
 #include <stellar/stellar_types.hpp> // StellarOptions
 
 namespace stellar
@@ -44,12 +46,20 @@ using StellarSwiftFinder = Finder<Segment<String<TAlphabet> const, InfixSegment>
 template <typename TAlphabet>
 struct StellarIndex
 {
-    StellarIndex(StringSet<String<TAlphabet>, Owner<> > const & queries, StellarOptions const & options)
+    using TSequence = seqan::String<TAlphabet>;
+    using TInfixSegment = seqan::Segment<seqan::String<TAlphabet> const, seqan::InfixSegment>;
+
+    template <typename TSpec>
+    StellarIndex(StringSet<TSequence, TSpec> const & queries, StellarOptions const & options)
         : dependentQueries{queries}, qgramIndex{dependentQueries}
     {
         resize(indexShape(qgramIndex), options.qGram);
         cargo(qgramIndex).abundanceCut = options.qgramAbundanceCut;
     }
+
+    StellarIndex(std::span<TInfixSegment> const & queries, StellarOptions const & options)
+        : StellarIndex{convertImpl(queries), options}
+    {}
 
     void construct()
     {
@@ -63,6 +73,16 @@ struct StellarIndex
 
     StringSet<String<TAlphabet>, Dependent<> > const dependentQueries;
     StellarQGramIndex<TAlphabet> qgramIndex;
+
+private:
+    static StringSet<TSequence, Dependent<> > convertImpl(std::span<TInfixSegment> const & queries)
+    {
+        StringSet<TSequence, Dependent<> > dependentQueries;
+        for (TInfixSegment const & query: queries)
+            seqan::appendValue(dependentQueries, seqan::host(query));
+
+        return dependentQueries;
+    }
 };
 
 } // namespace stellar

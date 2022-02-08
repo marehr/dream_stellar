@@ -34,9 +34,44 @@ struct StringSetOwnerFactory
     }
 };
 
-struct StringSetDependentFactory;
+struct StringSetDependentFactory
+{
+    template <typename TAlphabet>
+    static seqan::StringSet<seqan::String<TAlphabet>, seqan::Dependent<>>
+    dependentQueries(seqan::StringSet<seqan::String<TAlphabet>> const & sequences)
+    {
+        return sequences; // convert
+    }
 
-struct InfixSegmentVectorFactory;
+    template <typename TAlphabet>
+    static decltype(auto) underlyingSequence(seqan::String<TAlphabet> const & sequence)
+    {
+        return sequence; // pass as is
+    }
+};
+
+struct InfixSegmentVectorFactory
+{
+    template <typename TAlphabet>
+    using TInfixSequence = seqan::Segment<seqan::String<TAlphabet> const, seqan::InfixSegment>;
+
+    template <typename TAlphabet>
+    static auto
+    dependentQueries(seqan::StringSet<seqan::String<TAlphabet>> const & sequences)
+    {
+        std::vector<TInfixSequence<TAlphabet>> infixSequences{};
+        for (auto const & sequence : sequences)
+            infixSequences.emplace_back(sequence, 0u, seqan::length(sequence));
+
+        return infixSequences; // convert
+    }
+
+    template <typename TAlphabet>
+    static decltype(auto) underlyingSequence(TInfixSequence<TAlphabet> const & sequence)
+    {
+        return host(sequence); // pass as is
+    }
+};
 
 template <typename TFactory>
 struct StellarIndexTest : public ::testing::Test {
@@ -44,7 +79,7 @@ public:
     TFactory factory{};
 };
 
-using ConstructFactories = ::testing::Types<StringSetOwnerFactory>;
+using ConstructFactories = ::testing::Types<StringSetOwnerFactory, StringSetDependentFactory, InfixSegmentVectorFactory>;
 TYPED_TEST_SUITE(StellarIndexTest, ConstructFactories);
 
 TYPED_TEST(StellarIndexTest, Construct)
