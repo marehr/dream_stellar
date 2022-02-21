@@ -82,6 +82,8 @@ public:
     template <typename functor_t>
     void prefilter(functor_t && functor)
     {
+        // TODO: we somehow need to this in
+        size_t const maxError = 1u;
         assert(_prefilter_ptr != nullptr);
 
         auto binIDToDatabaseSegment = [&](size_t const binID) -> TDatabaseSegment
@@ -96,12 +98,29 @@ public:
             seqan::String<TAlphabet> const & query = host(querySegment);
             std::vector<TDatabaseSegment> _databaseSegments{};
 
+            // This was used to get a std::cout if a bin_id met a threshold
+#define STELLAR_DEBUG_PREFILTER_ALWAYS_MATCH 0
+
+#if STELLAR_DEBUG_PREFILTER_ALWAYS_MATCH
+            for (seqan::String<TAlphabet> const & database: _prefilter_ptr->_databases)
+                _databaseSegments.emplace_back(database, 0u, length(database));
+#endif // STELLAR_DEBUG_PREFILTER_ALWAYS_MATCH
+
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+            std::cout << "valik_local_prefilter" << std::endl;
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
             stellar::detail::valik_local_prefilter(
                 query, // TODO: pass querySegment directly
                 _prefilter_ptr->_queryPrefilterIndex,
                 _minLength,
+                maxError,
                 [&](size_t const bin_id) {
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+                    std::cout << "bin_id(" << bin_id << ") threshold met" << std::endl;
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
+#if !STELLAR_DEBUG_PREFILTER_ALWAYS_MATCH
                     _databaseSegments.emplace_back(binIDToDatabaseSegment(bin_id));
+#endif // !STELLAR_DEBUG_PREFILTER_ALWAYS_MATCH
                 });
 
             if (_databaseSegments.size() > 0)

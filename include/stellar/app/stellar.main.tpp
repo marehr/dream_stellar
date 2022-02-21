@@ -23,6 +23,10 @@
 
 #pragma once
 
+#define STELLAR_USE_NO_QUERY_PREFILTER 0
+#define STELLAR_USE_LOCAL_QUERY_PREFILTER 1
+#define STELLAR_DEBUG_LOCAL_PREFILTER 0
+
 #include <stellar/app/stellar.main.hpp>
 
 #include <seqan/seq_io.h>
@@ -35,6 +39,7 @@
 #include <stellar/parallel/compute_statistics_collection.hpp>
 
 #include <stellar/prefilter/no_query_prefilter.hpp>
+#include <stellar/prefilter/local_query_prefilter.hpp>
 #include <stellar/prefilter/nsegment_database_agent_splitter.hpp>
 #include <stellar/prefilter/whole_database_agent_splitter.hpp>
 
@@ -174,6 +179,166 @@ void _mergeMatchesIntoFirst(StringSet<QueryMatches<StellarMatch<TSequence const,
     }
 }
 
+struct LocalQueryPrefilterTag{};
+struct NoQueryPrefilterTag{};
+
+template <typename TAlphabet>
+auto createPrefilter(
+    StringSet<String<TAlphabet> > const & databases,
+    StringSet<String<TAlphabet> > const & queries,
+    StellarSwiftPattern<TAlphabet> & swiftPattern,
+    NoQueryPrefilterTag)
+{
+    using TQueryFilter = StellarSwiftPattern<TAlphabet>;
+
+    using TSplitter = WholeDatabaseAgentSplitter;
+    // using TSplitter = NSegmentDatabaseAgentSplitter;
+    using TPrefilter = NoQueryPrefilter<TAlphabet, TQueryFilter, TSplitter>;
+
+    auto createSplitter = []()
+    {
+        if constexpr (std::is_same_v<TSplitter, NSegmentDatabaseAgentSplitter>) {
+            return NSegmentDatabaseAgentSplitter{2u}; // 2 segments
+        } else {
+            return WholeDatabaseAgentSplitter{};
+        }
+    };
+
+    TPrefilter prefilter{databases, TQueryFilter{swiftPattern} /*copy pattern*/, createSplitter()};
+    return prefilter;
+}
+
+template <typename TAlphabet, typename TQueryFilter>
+auto getSwiftIndex(
+    TQueryFilter & queryFilter,
+    StellarOptions const & /*options*/,
+    NoQueryPrefilterTag)
+{
+    struct _index_t
+    {
+        StellarSwiftPattern<TAlphabet> & createSwiftPattern() &
+        {
+            return _queryFilter;
+        }
+
+        StellarSwiftPattern<TAlphabet> & _queryFilter;
+    };
+    return _index_t{queryFilter};
+}
+
+template <typename TAlphabet>
+auto createPrefilter(
+    StringSet<String<TAlphabet> > const & databases,
+    StringSet<String<TAlphabet> > const & queries,
+    StellarSwiftPattern<TAlphabet> & swiftPattern,
+    LocalQueryPrefilterTag)
+{
+    using TQuerySegment = seqan::Segment<seqan::String<TAlphabet> const, seqan::InfixSegment>;
+    using TPrefilter = LocalQueryPrefilter<TAlphabet, TQuerySegment>;
+
+#if 0
+    read length: 1000
+
+    read: 100 -> bin 1
+    read: 800 -> bin 2
+
+    arguments.kmer_size: 19
+    arguments.window_size: 24
+    arguments.pattern_size: 50
+    arguments.overlap: 49
+
+| bin_size      | minimiser | matched minimiser | matching pattern |
+| ------------- | --------- | ----------------- | ---------------- |
+| 524'288u      | 277599    | 119970            | 34552            |
+| 1'024'000u    | 277599    | 50898             | 2954             |
+| 2'048'000u    | 277599    | 18263             | 1938             |
+| 4'096'000u    | 277599    | 7084              | 1788             |
+| 8'192'000u    | 277599    | 3804              | 1747             |
+| 16'384'000u   | 277599    | 2933              | 1742             |
+| 32'768'000u   | 277599    | 2727              | 1741             |
+| 65'536'000u   | 277599    | 2660              | 1741             |
+| 131'072'000u  | 277599    | 2642              | 1741             |
+| 262'144'000u  | 277599    | 2639              | 1741             |
+| 524'288'000u  | 277599    | 2639              | 1741             |
+| 2'097'152'000 | 277599    | 2638              | 1741             |
+
+#endif
+
+    auto ibf_start = std::chrono::high_resolution_clock::now();
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+    std::cout << "start IBF construction" << std::endl;
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
+    stellar::detail::valik_local_query_prefilter_index queryPrefilterIndex{
+        // ibf parameters
+        ._ibf {
+            seqan3::bin_count{length(databases)},
+            seqan3::bin_size{524'288'000u / 16u}, /* = 32'768'000u*/
+            // 32MB for 1MB sequence file LOL
+            seqan3::hash_function_count{2u/*arguments->hash*/}
+        },
+
+        // hash parameters
+        ._kmer_size{seqan3::ungapped{19u/*arguments->kmer_size*/}},
+        ._window_size{seqan3::window_size{24u/*arguments->window_size*/}}
+    };
+
+    if constexpr (!std::is_same_v<TAlphabet, char>)
+    {
+        for (size_t bin_id = 0; bin_id < length(databases); ++bin_id)
+        {
+            auto hash_view = queryPrefilterIndex.hash_view(databases[bin_id]);
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+            std::cout << "databases[" << bin_id << "] has " << std::ranges::distance(hash_view) << " minimiser" << std::endl;
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
+
+            queryPrefilterIndex.insert_sequence(seqan3::bin_index{bin_id}, databases[bin_id]);
+        }
+    }
+
+    TPrefilter prefilter{databases, queries, std::move(queryPrefilterIndex)};
+    auto ibf_end = std::chrono::high_resolution_clock::now();
+    double ibf_time = std::chrono::duration_cast<std::chrono::duration<double>>(ibf_end - ibf_start).count();
+
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+    std::cout << "construct IBF in " << ibf_time << "s" << std::endl;
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
+
+    return prefilter;
+}
+
+template <typename TAlphabet, typename TQueryFilter>
+auto getSwiftIndex(
+    TQueryFilter && queryFilter,
+    StellarOptions const & options,
+    LocalQueryPrefilterTag)
+{
+    using TQuerySegment = seqan::Segment<seqan::String<TAlphabet> const, seqan::InfixSegment>;
+
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+{
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+
+    using TSequence = String<TAlphabet>;
+    TSequence const & querySequence = host(queryFilter);
+    size_t const queryRecordID = &querySequence - &queries[0];
+
+    for (StellarDatabaseSegment<TAlphabet> const & databaseSegment : databaseSegments)
+    {
+        String<TAlphabet> const & database = databaseSegment.underlyingDatabase();
+        size_t const databaseRecordID = databaseIDMap.recordID(database);
+        std::cout << "queryRecordID(" << queryRecordID << ") matches databaseRecordID(" << databaseRecordID << ")" << std::endl;
+    }
+}
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
+
+    TQuerySegment querySegment = std::forward<decltype(queryFilter)>(queryFilter);
+    StellarIndex<TAlphabet> stellarIndex{std::span<TQuerySegment>(&querySegment, 1u), options};
+    stellarIndex.construct();
+    // StellarSwiftPattern<TAlphabet> localSwiftPattern = stellarIndex.createSwiftPattern();
+
+    return stellarIndex;
+}
+
 template <typename TAlphabet, typename TId>
 inline StellarOutputStatistics
 _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
@@ -189,13 +354,19 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
     using TSequence = String<TAlphabet>;
 
     using TQueryFilter = StellarSwiftPattern<TAlphabet>;
-    // using TSplitter = WholeDatabaseAgentSplitter;
-    using TSplitter = NSegmentDatabaseAgentSplitter;
-    using TPrefilter = NoQueryPrefilter<TAlphabet, TQueryFilter, TSplitter>;
+#if STELLAR_USE_NO_QUERY_PREFILTER
+    using TPrefilterTag = NoQueryPrefilterTag;
+#elif STELLAR_USE_LOCAL_QUERY_PREFILTER
+    using TPrefilterTag
+        = std::conditional_t<
+            std::is_same_v<TAlphabet, char>,
+            NoQueryPrefilterTag, // char can't do reverse complement
+            LocalQueryPrefilterTag>;
+#endif
+    auto prefilter = createPrefilter(databases, queries, swiftPattern, TPrefilterTag{});
+    using TPrefilter = decltype(prefilter);
     using TPrefilterAgent = typename TPrefilter::Agent;
     using TDatabaseSegments = typename TPrefilter::TDatabaseSegments;
-
-    TPrefilter prefilter{databases, TQueryFilter{swiftPattern} /*copy pattern*/, TSplitter{2u}};
 
     // container for eps-matches
     StringSet<QueryMatches<StellarMatch<TSequence const, TId> > > matches;
@@ -207,7 +378,7 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
 
     std::vector<TPrefilterAgent> prefilterAgents = prefilter.agents(options.threadCount, options.minLength);
 
-    #pragma omp parallel for num_threads(prefilterAgents.size()) default(none) firstprivate(databaseStrand) shared(std::cout, prefilterAgents, options, matches, databaseIDMap, computeStatistics)
+    #pragma omp parallel for num_threads(prefilterAgents.size()) default(none) firstprivate(databaseStrand) shared(queries, std::cout, prefilterAgents, options, matches, databaseIDMap, computeStatistics)
     for (TPrefilterAgent & agent: prefilterAgents)
     {
         StringSet<QueryMatches<StellarMatch<TSequence const, TId> > > localMatches;
@@ -216,8 +387,15 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
         StellarOptions localOptions = options;
         StellarComputeStatisticsPartialCollection localPartialStatistics{computeStatistics.size()};
 
-        agent.prefilter([&](TDatabaseSegments const & databaseSegments, TQueryFilter localSwiftPattern)
+#if STELLAR_DEBUG_LOCAL_PREFILTER
+        std::cout << "request agent(" << (&agent - &prefilterAgents[0]) << ") to prefilter" << std::endl;
+#endif // STELLAR_DEBUG_LOCAL_PREFILTER
+
+        agent.prefilter([&](TDatabaseSegments const & databaseSegments, /*TQueryFilter*/ auto && queryFilter)
         {
+            auto stellarIndex = getSwiftIndex<TAlphabet>(std::forward<decltype(queryFilter)>(queryFilter), options, TPrefilterTag{});
+            auto && localSwiftPattern = stellarIndex.createSwiftPattern();
+
             for (StellarDatabaseSegment<TAlphabet> const & databaseSegment : databaseSegments)
             {
                 String<TAlphabet> const & database = databaseSegment.underlyingDatabase();
@@ -225,7 +403,15 @@ _stellarOnWholeDatabase(StringSet<String<TAlphabet> > const & databases,
 
                 auto getQueryMatches = [&](auto const & pattern) -> QueryMatches<StellarMatch<TSequence const, TId> > &
                 {
-                    return value(localMatches, pattern.curSeqNo);
+                    size_t queryRecordID = pattern.curSeqNo;
+                    // TODO: this needs to be more easy to access
+                    if constexpr (std::is_same_v<TPrefilterTag, LocalQueryPrefilterTag>)
+                    {
+                        // TODO: this needs to be dependent on Pattern
+                        TSequence const & querySequence = host(queryFilter);
+                        queryRecordID = &querySequence - &queries[0];
+                    }
+                    return value(localMatches, queryRecordID);
                 };
 
                 auto isPatternDisabled = [&](StellarSwiftPattern<TAlphabet> & pattern) -> bool {
