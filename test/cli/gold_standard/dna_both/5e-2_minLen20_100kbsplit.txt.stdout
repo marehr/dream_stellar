@@ -36,7 +36,7 @@ Aligning all query sequences to database sequence...
     Longest hit       : 192
     Avg hit length    : 18
   seq1::100000:200000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
-    # SWIFT hits      : 1483
+    # SWIFT hits      : 1482
     Longest hit       : 196
     Avg hit length    : 17
   seq1::200000:300000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
@@ -44,7 +44,7 @@ Aligning all query sequences to database sequence...
     Longest hit       : 202
     Avg hit length    : 17
   seq1::300000:400000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
-    # SWIFT hits      : 1381
+    # SWIFT hits      : 1380
     Longest hit       : 197
     Avg hit length    : 17
   seq1::400000:500000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
@@ -52,11 +52,11 @@ Aligning all query sequences to database sequence...
     Longest hit       : 195
     Avg hit length    : 17
   seq1::500000:600000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
-    # SWIFT hits      : 1501
+    # SWIFT hits      : 1500
     Longest hit       : 194
     Avg hit length    : 18
   seq1::600000:700000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
-    # SWIFT hits      : 1488
+    # SWIFT hits      : 1485
     Longest hit       : 198
     Avg hit length    : 18
   seq1::700000:800000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200
@@ -88,7 +88,7 @@ Aligning all query sequences to database sequence...
     Longest hit       : 36
     Avg hit length    : 14
   seq1::400000:500000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200, complement
-    # SWIFT hits      : 1411
+    # SWIFT hits      : 1410
     Longest hit       : 34
     Avg hit length    : 14
   seq1::500000:600000 length=1000000 numMatches=500 errorRate=0.05 matchMinLength=50 matchMaxLength=200, complement
