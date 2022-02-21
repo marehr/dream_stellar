@@ -146,6 +146,9 @@ endif ()
 # Update the list of file names below if you add source files to your application.
 add_executable (stellar stellar.cpp)
 
+# Add Prefilter sources
+target_sources (stellar PUBLIC "stellar/prefilter/local_query_prefilter.cpp")
+
 if (STELLAR_PARALLEL_BUILD)
     target_link_libraries (stellar PRIVATE stellar_main stellar_arg_parser stellar_diagnostics)
 endif ()
