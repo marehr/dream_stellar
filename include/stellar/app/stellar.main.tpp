@@ -23,6 +23,8 @@
 
 #pragma once
 
+#define STELLAR_USE_LOCAL_QUERY_PREFILTER 1
+
 #include <variant>
 
 #include <stellar/app/stellar.main.hpp>
@@ -39,11 +41,13 @@
 #include <stellar/parallel/compute_statistics_collection.hpp>
 
 #include <stellar/prefilter/no_query_prefilter.hpp>
+#include <stellar/prefilter/local_query_prefilter.hpp>
 #include <stellar/prefilter/nsegment_database_agent_splitter.hpp>
 #include <stellar/prefilter/whole_database_agent_splitter.hpp>
 
 #include <stellar/app/stellar.diagnostics.hpp>
 #include <stellar/app/prefilter/create_prefilter.hpp>
+#include <stellar/app/prefilter/create_local_query_prefilter.hpp>
 #include <stellar/app/prefilter/create_no_query_prefilter.hpp>
 
 #include <stellar/app/stellar.diagnostics.tpp>
@@ -221,10 +225,13 @@ struct StellarApp
             = std::type_identity<stellar::NoQueryPrefilter<TAlphabet, WholeDatabaseAgentSplitter>>;
         using NoQueryPrefilterWithNSegmentDatabaseAgentSplitterTag
             = std::type_identity<stellar::NoQueryPrefilter<TAlphabet, NSegmentDatabaseAgentSplitter>>;
+        using LocalQueryPrefilterTag
+            = std::type_identity<LocalQueryPrefilter<TAlphabet>>;
 
         std::variant<
             NoQueryPrefilterWithWholeDatabaseAgentSplitterTag,
-            NoQueryPrefilterWithNSegmentDatabaseAgentSplitterTag
+            NoQueryPrefilterWithNSegmentDatabaseAgentSplitterTag,
+            LocalQueryPrefilterTag
         > selected_prefilter;
 
         selected_prefilter = NoQueryPrefilterWithWholeDatabaseAgentSplitterTag{};
@@ -232,6 +239,14 @@ struct StellarApp
         if (options.splitDatabase && options.splitNSegments > 1u)
         {
             selected_prefilter = NoQueryPrefilterWithNSegmentDatabaseAgentSplitterTag{};
+        }
+
+        if ((bool)(STELLAR_USE_LOCAL_QUERY_PREFILTER))
+        {
+            selected_prefilter = LocalQueryPrefilterTag{};
+
+            if (std::is_same_v<TAlphabet, char>)
+                selected_prefilter = NoQueryPrefilterWithWholeDatabaseAgentSplitterTag{};
         }
 
         std::unique_ptr<stellar::prefilter<TAlphabet>> prefilter
