@@ -100,6 +100,8 @@ struct StellarOptions {
 
     // more options
     unsigned threadCount{1u};   // The maximum number of threads
+    bool splitDatabase{true};   // Whether the database sequences should be split into multiple parts.
+                                // This can result into a slight increase in the number of Swift verifications.
     bool forward;               // compute matches to forward strand of database
     bool reverse;               // compute matches to reverse complemented database
     // verification strategy: exact, bestLocal, bandedGlobal
