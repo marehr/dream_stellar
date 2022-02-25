@@ -77,32 +77,69 @@ template <typename TFactory>
 struct StellarIndexTest : public ::testing::Test {
 public:
     TFactory factory{};
+
+    template <typename TSequenceSegment, typename TSequence>
+    static void expect_segment(
+        TSequenceSegment const & sequenceSegment,
+        TSequence const & expectedUnderlyingSequence,
+        size_t const expectedBeginPosition,
+        size_t const expectedEndPosition,
+        std::string_view const expectedSubsequence)
+    {
+        using TInterval = std::pair<size_t, size_t>;
+
+        TSequenceSegment expectedSequenceSegment{
+            expectedUnderlyingSequence,
+            expectedBeginPosition,
+            expectedEndPosition
+        };
+
+        TSequence const & actualSequence = sequenceSegment.underlyingSequence();
+
+        // expect that the infix segment points to the right underlying sequence
+        EXPECT_EQ(std::addressof(actualSequence), std::addressof(expectedUnderlyingSequence));
+
+        // check whether underlying sequence has the same content (it should if prior test passes)
+        EXPECT_EQ(actualSequence, expectedUnderlyingSequence);
+
+        // check whether sequence corresponds to expected sub-sequence
+        EXPECT_EQ(sequenceSegment.asInfixSegment(), std::string(expectedSubsequence));
+
+        // check whether segment interval is the same as expected
+        EXPECT_EQ(sequenceSegment.interval(), TInterval(expectedBeginPosition, expectedEndPosition));
+
+        // last check if is the same segment
+        EXPECT_EQ(sequenceSegment, expectedSequenceSegment);
+    }
 };
 
 using ConstructFactories = ::testing::Types<StringSetOwnerFactory, StringSetDependentFactory, InfixSegmentVectorFactory>;
 TYPED_TEST_SUITE(StellarIndexTest, ConstructFactories);
 
-TYPED_TEST(StellarIndexTest, Construct)
+template <typename TAlphabet>
+struct results
 {
-    using TAlphabet = seqan::Dna5;
+    using TDatabaseSegment = stellar::StellarDatabaseSegment<TAlphabet>;
+    using TQuerySegment = stellar::StellarQuerySegment<TAlphabet>;
+    using TAlignment = std::pair<TDatabaseSegment, TQuerySegment>;
 
+    // Note: verifySwiftHit's delta is the sum of pattern_delta + pattern_overlap
+    std::vector<unsigned> pattern_deltas{};
+    std::vector<unsigned> pattern_overlaps{};
+    std::vector<TAlignment> alignments{};
+};
+
+template <typename TAlphabet, typename TypeParam>
+results<TAlphabet> swift_find_local_match_seeds(
+    StellarIndexTest<TypeParam> const & self,
+    seqan::String<TAlphabet> const & database,
+    seqan::StringSet<seqan::String<TAlphabet>> const & queries,
+    stellar::StellarOptions const & options)
+{
     using TSequence = seqan::String<TAlphabet>;
     using TInfixSequence = seqan::Segment<TSequence const, seqan::InfixSegment>;
 
-    TSequence database{"TAGAC" "TAACCGCAGAACACG" "ACTCCTCTAC"};
-
-    seqan::StringSet<TSequence> queries{};
-    seqan::appendValue(queries, "TACGCATATCTGG" "TAACCGCAGAACACG" "AA");
-    seqan::appendValue(queries, "TAGCCG" "TAACCGCAGAACACG" "GACC");
-    seqan::appendValue(queries, "TAGCCAGTTTA" "GCAGAACAC" "CAAGA");
-
-    size_t const kmerSize = 7u;
-    stellar::StellarOptions options{};
-    options.qGram = kmerSize;
-    options.epsilon = 0.01;
-    options.minLength = 9u;
-
-    decltype(auto) dependentQueries = this->factory.dependentQueries(queries);
+    decltype(auto) dependentQueries = self.factory.dependentQueries(queries);
 
     if constexpr (std::is_same<TypeParam, StringSetOwnerFactory>::value)
     {
@@ -119,9 +156,9 @@ TYPED_TEST(StellarIndexTest, Construct)
     }
 
     // make sure that dependentQueries are reference to the actual queries (have same pointer address)
-    EXPECT_EQ(std::addressof(this->factory.underlyingSequence(dependentQueries[0])), std::addressof(queries[0]));
-    EXPECT_EQ(std::addressof(this->factory.underlyingSequence(dependentQueries[1])), std::addressof(queries[1]));
-    EXPECT_EQ(std::addressof(this->factory.underlyingSequence(dependentQueries[2])), std::addressof(queries[2]));
+    EXPECT_EQ(std::addressof(self.factory.underlyingSequence(dependentQueries[0])), std::addressof(queries[0]));
+    EXPECT_EQ(std::addressof(self.factory.underlyingSequence(dependentQueries[1])), std::addressof(queries[1]));
+    EXPECT_EQ(std::addressof(self.factory.underlyingSequence(dependentQueries[2])), std::addressof(queries[2]));
 
     stellar::StellarIndex<TAlphabet> index{dependentQueries, options};
     index.construct();
@@ -134,35 +171,173 @@ TYPED_TEST(StellarIndexTest, Construct)
         options.maxRepeatPeriod
     };
 
-    using TDatabaseSegment = stellar::StellarDatabaseSegment<TAlphabet>;
-    using TQuerySegment = stellar::StellarQuerySegment<TAlphabet>;
-    using TAlignment = std::pair<TDatabaseSegment, TQuerySegment>;
+    static_assert(std::is_same<decltype(swiftPattern.bucketParams[0].delta), unsigned>::value, "");
+    static_assert(std::is_same<decltype(swiftPattern.bucketParams[0].overlap), unsigned>::value, "");
 
-    std::vector<TAlignment> results{};
+    using TResults = results<TAlphabet>;
+    using TDatabaseSegment = typename TResults::TDatabaseSegment;
+    using TQuerySegment = typename TResults::TQuerySegment;
+
+    TResults results{};
 
     while (seqan::find(swiftFinder, swiftPattern, options.epsilon, options.minLength)) {
         TDatabaseSegment const databaseSegment = TDatabaseSegment::fromFinderMatch(seqan::infix(swiftFinder));
         TQuerySegment const querySegment = TQuerySegment::fromPatternMatch(swiftPattern);
 
-        results.emplace_back(databaseSegment, querySegment);
+        // should always be the same number
+        results.pattern_deltas.emplace_back(swiftPattern.bucketParams[0].delta);
+        // should always be the same number
+        results.pattern_overlaps.emplace_back(swiftPattern.bucketParams[0].overlap);
+        // different for each invocation
+        results.alignments.emplace_back(databaseSegment, querySegment);
     }
 
-    std::vector<std::pair<TDatabaseSegment, TQuerySegment>> expected{};
-    using TInterval = std::pair<size_t, size_t>;
+    // sort alignments by query and not database
+    std::sort(results.alignments.begin(), results.alignments.end(), [&](auto const & v1, auto const & v2)
+    {
+        return v1.second < v2.second;
+    });
 
-    ASSERT_EQ(results.size(), 3u);
-    EXPECT_EQ(results[0].first.asInfixSegment(), "TAACCGCAGAACACGA");
-    EXPECT_EQ(results[0].first.interval(), TInterval(5u, 5u + 16u));
-    EXPECT_EQ(results[0].second.asInfixSegment(), "ATATCTGGTAACCGCAGAACACGAA");
-    EXPECT_EQ(results[0].second.interval(), TInterval(5u, 5u + 25u));
+    return results;
+}
 
-    EXPECT_EQ(results[1].first.asInfixSegment(), "TAACCGCAGAACACG");
-    EXPECT_EQ(results[1].first.interval(), TInterval(5u, 5u + 15u));
-    EXPECT_EQ(results[1].second.asInfixSegment(), "GTAACCGCAGAACACGGACC");
-    EXPECT_EQ(results[1].second.interval(), TInterval(5u, 5u + 20u));
+TYPED_TEST(StellarIndexTest, validSeedWithExactMatches)
+{
+    using TAlphabet = seqan::Dna5;
+    using TSequence = seqan::String<TAlphabet>;
+    TSequence database{"CAACGGACTGCTGTCTAGAC" "TAACCGCAGAACACG" "ACTCCTCTACCTTACCGCGT"};
 
-    EXPECT_EQ(results[2].first.asInfixSegment(), "GCAGAACAC");
-    EXPECT_EQ(results[2].first.interval(), TInterval(10u, 10u + 9u));
-    EXPECT_EQ(results[2].second.asInfixSegment(), "AGCAGAACACCAAGA");
-    EXPECT_EQ(results[2].second.interval(), TInterval(10u, 10u + 15u));
+    seqan::StringSet<TSequence> queries{};
+    // original
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCGCAGAACACG" "A" "AGAGCCTGAGA");
+    // 1 error, insert in query sequence
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCGC" "A" "AGAACACG" "A" "AGAGCCTGAGA");
+    // 1 error, delete in query sequence
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCG"/*C*/ "AGAACACG" "A" "AGAGCCTGAGA");
+    // 1 error, substitution in query sequence
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCG" "G" "AAGAACACG" "A" "AGAGCCTGAGA");
+    // another sequence
+    seqan::appendValue(queries, "CCGACTACCCACTTACTTATTAGCCG" "TAACCGCAGAACACG" "GACCAATCAGGCCC");
+    // another smaller sequence
+    seqan::appendValue(queries, "TAGCCAGTTTA" "GCAGAACAC" "CAAGA");
+
+    size_t const kmerSize = 7u;
+    stellar::StellarOptions options{};
+    options.qGram = kmerSize;
+    options.epsilon = 0.01;
+    options.minLength = 9u;
+
+    using TResults = results<TAlphabet>;
+    TResults results = swift_find_local_match_seeds(*this, database, queries, options);
+
+    EXPECT_EQ(results.pattern_deltas, (std::vector<unsigned>{16u, 16u, 16u, 16u, 16u, 16u}));
+    EXPECT_EQ(results.pattern_overlaps, (std::vector<unsigned>{0u, 0u, 0u, 0u, 0u, 0u}));
+
+    ASSERT_EQ(results.alignments.size(), 6u);
+
+    // original
+    this->expect_segment(results.alignments[0].first, database, 20u, 20u + 16u,
+                         /*  */"TAACCGCAGAACACGA");
+    this->expect_segment(results.alignments[0].second, queries[0], 20u, 20u + 3u + 16u + 11u,
+                         "TGG" "TAACCGCAGAACACGA" "AGAGCCTGAGA");
+
+    // 1 error, insert in query sequence
+    this->expect_segment(results.alignments[1].first, database, 27u, 27u + 9u,
+                         /*   */"AGAACACGA");
+    this->expect_segment(results.alignments[1].second, queries[1], 27u, 27u + 4u + 9u + 11u,
+                         "CGCA" "AGAACACGA" "AGAGCCTGAGA");
+
+    // 1 error, delete in query sequence
+    this->expect_segment(results.alignments[2].first, database, 27u, 27u + 9u,
+                         /* */"AGAACACGA");
+    this->expect_segment(results.alignments[2].second, queries[2], 27u, 27u + 2u + 9u + 11u,
+                         "CG" "AGAACACGA" "AGAGCCTGAGA");
+
+    // 1 error, substitution in query sequence
+    this->expect_segment(results.alignments[3].first, database, 27u, 27u + 9u,
+                         /* */"AGAACACGA");
+    this->expect_segment(results.alignments[3].second, queries[3], 27u, 27u + 4u + 9u + 11u,
+                         "CGGA" "AGAACACGA" "AGAGCCTGAGA");
+
+    // another sequence
+    this->expect_segment(results.alignments[4].first, database, 20u, 20u + 15u,
+                         /*     */"TAACCGCAGAACACG");
+    this->expect_segment(results.alignments[4].second, queries[4], 20u, 20u + 6u + 15u + 10u,
+                         "TAGCCG" "TAACCGCAGAACACG" "GACCAATCAG");
+
+    // another smaller sequence
+    this->expect_segment(results.alignments[5].first, database, 25u, 25u + 9u,
+                         /* */"GCAGAACAC");
+    this->expect_segment(results.alignments[5].second, queries[5], 9u, 9u + 2u + 9u + 5u,
+                         "TA" "GCAGAACAC" "CAAGA");
+}
+
+TYPED_TEST(StellarIndexTest, validSeedWithOneErrorMatches)
+{
+    using TAlphabet = seqan::Dna5;
+    using TSequence = seqan::String<TAlphabet>;
+    TSequence database{"CAACGGACTGCTGTCTAGAC" "TAACCGCAGAACACG" "ACTCCTCTACCTTACCGCGT"};
+
+    seqan::StringSet<TSequence> queries{};
+    // original
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCGCAGAACACG" "A" "AGAGCCTGAGA");
+    // 1 error, insert in query sequence
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCGC" "A" "AGAACACG" "A" "AGAGCCTGAGA");
+    // 1 error, delete in query sequence
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCG" "AGAACACG" "A" "AGAGCCTGAGA");
+    // 1 error, substitution in query sequence
+    seqan::appendValue(queries, "CTCGAGGGTTTACGCATATCTGG" "TAACCG" "G" "AAGAACACG" "A" "AGAGCCTGAGA");
+    // another sequence
+    seqan::appendValue(queries, "CCGACTACCCACTTACTTATTAGCCG" "TAACCGCAGAACACG" "GACCAATCAGGCCC");
+    // another smaller sequence
+    seqan::appendValue(queries, "TAGCCAGTTTA" "GCAGAACAC" "CAAGA");
+
+    size_t const kmerSize = 7u;
+    stellar::StellarOptions options{};
+    options.qGram = kmerSize;
+    options.epsilon = 0.125; // 9 length * 0.125 error-rate = 1 error
+    options.minLength = 9u;
+
+    using TResults = results<TAlphabet>;
+    TResults results = swift_find_local_match_seeds(*this, database, queries, options);
+
+    EXPECT_EQ(results.pattern_deltas, (std::vector<unsigned>{16u, 16u, 16u, 16u, 16u, 16u}));
+    EXPECT_EQ(results.pattern_overlaps, (std::vector<unsigned>{6u, 6u, 6u, 6u, 6u, 6u}));
+
+    ASSERT_EQ(results.alignments.size(), 6u);
+    // original (same result as with 0 errors, but 6 chars earlier)
+    this->expect_segment(results.alignments[0].first, database, 20u, 20u + 16u,
+                         /*        */"TAACCGCAGAACACGA");
+    this->expect_segment(results.alignments[0].second, queries[0], 14u, 14u + 6u + 3u + 16u + 11u,
+                         "CATATC" "TGG" "TAACCGCAGAACACGA" "AGAGCCTGAGA");
+
+    // 1 error, insert in query sequence (complete new result compared with 0 errors)
+    this->expect_segment(results.alignments[1].first, database, 20u, 20u + 16u,
+                         /*        */"TAACCGC"   "AGAACACGA");
+    this->expect_segment(results.alignments[1].second, queries[1], 14u, 14u + 9u + 17u + 11u,
+                         "CATATCTGG" "TAACCGC""A""AGAACACGA" "AGAGCCTGAGA");
+
+    // 1 error, delete in query sequence (same result as with 0 errors, but 6 chars earlier)
+    this->expect_segment(results.alignments[2].first, database, 27u, 27u + 9u,
+                         /*          */"AGAACACGA");
+    this->expect_segment(results.alignments[2].second, queries[2], 21u, 21u + 6u + 2u + 9u + 11u,
+                         "GGTAAC" "CG" "AGAACACGA" "AGAGCCTGAGA");
+
+    // 1 error, substitution in query sequence (same result as with 0 errors, but 6 chars earlier)
+    this->expect_segment(results.alignments[3].first, database, 27u, 27u + 9u,
+                         /*           */"AGAACACGA");
+    this->expect_segment(results.alignments[3].second, queries[3], 21u, 21u + 6u + 4u + 9u + 11u,
+                        "GGTAAC" "CGGA" "AGAACACGA" "AGAGCCTGAGA");
+
+    // another sequence (same result as with 0 errors, but 6 chars earlier)
+    this->expect_segment(results.alignments[4].first, database, 20u, 20u + 15u,
+                         /*              */"TAACCGCAGAACACG");
+    this->expect_segment(results.alignments[4].second, queries[4], 14u, 14u + 6u + 6u + 15u + 10u,
+                         "ACTTAT" "TAGCCG" "TAACCGCAGAACACG" "GACCAATCAG");
+
+    // another smaller sequence (same result as with 0 errors, but 6 chars earlier)
+    this->expect_segment(results.alignments[5].first, database, 25u, 25u + 9u,
+                         /*          */"GCAGAACAC");
+    this->expect_segment(results.alignments[5].second, queries[5], 3u, 3u + 6u + 2u + 9u + 5u,
+                         "CCAGTT" "TA" "GCAGAACAC" "CAAGA");
 }
