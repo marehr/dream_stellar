@@ -306,23 +306,20 @@ _stellarKernel(StellarSwiftFinder<TAlphabet> & finder,
                SwiftHitVerifier<TTag> & swiftVerifier,
                TIsPatternDisabledFn && isPatternDisabled,
                TOnAlignmentResultFn && onAlignmentResult) {
-    using TText = String<TAlphabet>;
-    using TInfix = typename Infix<TText const>::Type;
-
     StellarComputeStatistics statistics{};
 
     while (find(finder, pattern, swiftVerifier.epsilon, swiftVerifier.minLength)) {
-        Segment<TInfix, InfixSegment> finderSegment
-            = StellarDatabaseSegment<TAlphabet>::fromFinderMatch(infix(finder)).asFinderSegment();
+        StellarDatabaseSegment<TAlphabet> databaseSegment
+            = StellarDatabaseSegment<TAlphabet>::fromFinderMatch(infix(finder));
 
         ++statistics.numSwiftHits;
-        statistics.totalLength += length(finderSegment);
-        statistics.maxLength = std::max<size_t>(statistics.maxLength, length(finderSegment));
+        statistics.totalLength += databaseSegment.size();
+        statistics.maxLength = std::max<size_t>(statistics.maxLength, databaseSegment.size());
 
         if (isPatternDisabled(pattern)) continue;
 
-        Segment<TInfix, InfixSegment> patternSegment
-            = StellarQuerySegment<TAlphabet>::fromPatternMatch(pattern).asPatternSegment();
+        StellarQuerySegment<TAlphabet> querySegment
+            = StellarQuerySegment<TAlphabet>::fromPatternMatch(pattern);
 
         ////Debug stuff:
         //std::cout << beginPosition(finderInfix) << ",";
@@ -331,8 +328,8 @@ _stellarKernel(StellarSwiftFinder<TAlphabet> & finder,
         //std::cout << endPosition(patternSegment) << std::endl;
 
         // verification
-        swiftVerifier.verify(finderSegment,
-                             patternSegment,
+        swiftVerifier.verify(databaseSegment,
+                             querySegment,
                              pattern.bucketParams[0].delta + pattern.bucketParams[0].overlap,
                              onAlignmentResult);
     }
