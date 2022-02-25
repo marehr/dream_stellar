@@ -14,10 +14,10 @@ template<typename TSequence, typename TEpsilon, typename TSize, typename TDrop, 
 void
 verifySwiftHit(Segment<Segment<TSequence const, InfixSegment>, InfixSegment> const & infH,
                Segment<Segment<TSequence const, InfixSegment>, InfixSegment> const & infV,
-               TEpsilon const eps,
-               TSize const minLength,
-               TDrop const xDrop,
-               TDelta const delta,
+               /*double*/ TEpsilon const eps,
+               /*int*/ TSize const minLength,
+               /*double*/ TDrop const xDrop,
+               /*unsigned_integral*/ TDelta const delta,
                TOnAlignmentResultFn && onAlignmentResult,
                BestLocal) {
 
