@@ -30,12 +30,15 @@ _parseOptions(ArgumentParser const & parser, StellarOptions & options)
         options.outputFormat = "txt";
 
     // main options
+    double epsilon{};
     getOptionValue(options.qGram, parser, "kmer");
     getOptionValue(options.minLength, parser, "minLength");
-    getOptionValue(options.epsilon, parser, "epsilon");
+    getOptionValue(epsilon, parser, "epsilon");
     getOptionValue(options.xDrop, parser, "xDrop");
     getOptionValue(options.alphabet, parser, "alphabet");
     getOptionValue(options.threadCount, parser, "threads");
+
+    options.epsilon = stellar::utils::fraction::from_double(epsilon).limit_denominator();
 
     if (isSet(parser, "forward") && !isSet(parser, "reverse"))
         options.reverse = false;

@@ -26,6 +26,8 @@
 
 #include <seqan/align.h>
 
+#include <stellar/utils/fraction.hpp>
+
 #if __cpp_designated_initializers || __GNUC__ >= 8
 #   define STELLAR_DESIGNATED_INITIALIZER(designator, value) designator value
 #else
@@ -94,7 +96,7 @@ struct StellarOptions {
 
     // main options
     unsigned qGram;             // length of the q-grams
-    double epsilon;             // maximal error rate
+    stellar::utils::fraction epsilon{5, 100}; // maximal error rate
     int minLength;              // minimal length of an epsilon-match
     double xDrop;               // maximal x-drop
 
@@ -123,7 +125,6 @@ struct StellarOptions {
         noRT = false;
 
         qGram = std::numeric_limits<unsigned>::max();
-        epsilon = 0.05;
         minLength = 100;
         xDrop = 5;
 
@@ -140,31 +141,39 @@ struct StellarOptions {
 
     static constexpr size_t kmerCount(size_t sequenceLength, size_t kmerSize)
     {
-        assert(sequenceLength >= kmerSize);
+        assert(kmerSize > 0u);
+        assert(sequenceLength >= kmerSize - 1u);
         // number of kmers
-        return sequenceLength - kmerSize + 1;
+        return sequenceLength + 1u - kmerSize;
     }
 
     static constexpr size_t kmerLemma(size_t sequenceLength, size_t kmerSize, size_t errors)
     {
         size_t maxAffectedKMers = kmerSize * errors;
-        return kmerCount(sequenceLength, kmerSize) - maxAffectedKMers;
+        size_t count = kmerCount(sequenceLength, kmerSize);
+        return std::max(count, maxAffectedKMers) - maxAffectedKMers;
     }
 
     static constexpr size_t pigeonholeLemma(size_t sequenceLength, size_t errors)
     {
         // how many consecutive chars must be error free
-        return ceil((double)(sequenceLength - errors) / (errors + 1));
+        using difference_t = stellar::utils::fraction::difference_t;
+        return ceil(stellar::utils::fraction{static_cast<difference_t>(sequenceLength - errors), errors + 1});
     }
 
-    static constexpr size_t minLengthWithExactError(size_t absoluteError, double epsilon)
+    static constexpr size_t minLengthWithExactError(size_t absoluteError, stellar::utils::fraction epsilon)
     {
-        return (size_t) ceil(absoluteError / epsilon);
+        if (epsilon.numerator() == 0)
+            return std::numeric_limits<size_t>::max();
+
+        using difference_t = stellar::utils::fraction::difference_t;
+        return ceil(stellar::utils::fraction{static_cast<difference_t>(absoluteError), 1} / epsilon);
     }
 
-    static constexpr size_t absoluteErrors(double epsilon, size_t sequenceLength)
+    static constexpr size_t absoluteErrors(stellar::utils::fraction epsilon, size_t sequenceLength)
     {
-        return (size_t) floor(epsilon * sequenceLength);
+        using difference_t = stellar::utils::fraction::difference_t;
+        return floor(stellar::utils::fraction{static_cast<difference_t>(sequenceLength), 1} * epsilon);
     }
 };
 
@@ -180,25 +189,36 @@ struct StellarStatistics
 
     StellarStatistics(StellarOptions const & options)
     {
-        int n0 = options.minLength; // min length
-        int e0 = StellarOptions::absoluteErrors(options.epsilon, n0);
+        if (!options.epsilon.is_proper())
+            throw std::domain_error{"Epsilon must be between >= 0 and < 1."};
+
+        size_t n0 = options.minLength; // min length
+        size_t e0 = StellarOptions::absoluteErrors(options.epsilon, n0);
         // nearest length (after min length) that has exactly e0 + 1 many absolute errors
-        int n1 = StellarOptions::minLengthWithExactError(e0 + 1, options.epsilon);
-        int e1 = StellarOptions::absoluteErrors(options.epsilon, n1);
+        size_t n1 = StellarOptions::minLengthWithExactError(e0 + 1, options.epsilon);
+        size_t e1 = e0 + 1;
+
         unsigned smin0 = StellarOptions::pigeonholeLemma(n0, e0);
         unsigned smin1 = StellarOptions::pigeonholeLemma(n1, e1);
-        smin = (unsigned) _min(smin0, smin1);
+        smin = (unsigned) std::min(smin0, smin1);
+
+        assert(n1 >= n0);
+        assert(options.epsilon.numerator() == 0 || StellarOptions::absoluteErrors(options.epsilon, n1) == e1);
 
         kMerLength = options.qGram;
         kMerComputed = options.qGram == (unsigned)-1;
 
         if (kMerComputed)
-            kMerLength = (unsigned)_min(smin, 32u);
+            kMerLength = std::min(std::max(1u, smin), 32u);
 
-        int threshold0 = StellarOptions::kmerLemma(n0, kMerLength, e0);
-        int threshold1 = StellarOptions::kmerLemma(n1, kMerLength, e1);
-        threshold = (int) _max(1, (int) _min(threshold0, threshold1));
-        overlap = (int) floor((2 * threshold + kMerLength - 3) / (1 / options.epsilon - kMerLength));
+        if (kMerLength > (unsigned)options.minLength)
+            throw std::domain_error{"qGram must be smaller than minLength."};
+
+        size_t threshold0 = StellarOptions::kmerLemma(n0, kMerLength, e0);
+        size_t threshold1 = StellarOptions::kmerLemma(n1, kMerLength, e1);
+        threshold = std::max(size_t{1u}, std::min(threshold0, threshold1));
+
+        overlap = (int) floor((2 * threshold + kMerLength - 3) / (1 / (double)options.epsilon - kMerLength));
         distanceCut = (threshold - 1) + kMerLength * overlap + kMerLength;
         int logDelta = _max(4, (int) ceil(log((double)overlap + 1) / log(2.0)));
         delta = 1 << logDelta;
