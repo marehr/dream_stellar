@@ -7,7 +7,7 @@ I/O options:
 
 User specified parameters:
   minimal match length             : 50
-  maximal error rate (epsilon)     : 0.0001
+  maximal error rate (epsilon)     : 0.0001 = (1/10000)
   maximal x-drop                   : 10
   k-mer (q-gram) length            : 7
   search forward strand            : yes
