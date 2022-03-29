@@ -86,7 +86,6 @@ include (SeqAnBuildSystem) # for seqan_setup_install_vars
 add_library ("${PROJECT_NAME}_interface" INTERFACE)
 target_link_libraries ("${PROJECT_NAME}_interface" INTERFACE seqan3::seqan3)
 target_include_directories ("${PROJECT_NAME}_interface" INTERFACE ../include)
-target_include_directories ("${PROJECT_NAME}_interface" INTERFACE ../lib/valik/include)
 target_compile_options ("${PROJECT_NAME}_interface" INTERFACE "-pedantic" "-Wall" "-Wextra")
 
 # ----------------------------------------------------------------------------
@@ -120,6 +119,9 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 find_package (OpenMP) # requires cmake 3.10
 target_link_libraries ("${PROJECT_NAME}_interface" INTERFACE OpenMP::OpenMP_CXX)
 
+# Include prefilter sources
+add_subdirectory (stellar/prefilter)
+
 if (STELLAR_PARALLEL_BUILD)
     target_compile_definitions ("${PROJECT_NAME}_interface" INTERFACE -DSTELLAR_PARALLEL_BUILD)
 
@@ -147,10 +149,13 @@ endif ()
 add_executable (stellar stellar.cpp)
 
 # Add Prefilter sources
-target_sources (stellar PUBLIC "stellar/prefilter/local_query_prefilter.cpp")
+target_link_libraries (stellar PUBLIC stellar_local_query_prefilter)
 
 if (STELLAR_PARALLEL_BUILD)
     target_link_libraries (stellar PRIVATE stellar_main stellar_arg_parser stellar_diagnostics)
+
+    # Add Prefilter sources
+    target_link_libraries (stellar_main PUBLIC stellar_local_query_prefilter)
 endif ()
 
 # Add dependencies found by find_package (SeqAn).

@@ -9,7 +9,6 @@
 #include <seqan/stream.h>
 
 #include <valik/search/local_prefilter.hpp>
-#include <valik/search/search_setup.hpp>
 
 #include <stellar/prefilter/detail/reinterpret_as_dna4_sequence.hpp>
 #include <stellar/prefilter/detail/valik_local_prefilter_search_arguments.hpp>

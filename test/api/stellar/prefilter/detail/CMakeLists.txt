@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.8)
 
 add_api_test (valik_local_prefilter_threshold_test.cpp)
-target_compile_definitions (valik_local_prefilter_threshold_test PUBLIC -DSTELLAR_MINIMISER_THRESHOLD_INLINE_SRC=1)
+target_link_libraries (valik_local_prefilter_threshold_test PUBLIC stellar_local_query_prefilter)
 
 add_api_test (valik_local_prefilter_test.cpp)
-target_compile_definitions (valik_local_prefilter_test PUBLIC -DSTELLAR_MINIMISER_THRESHOLD_INLINE_SRC=1)
+target_link_libraries (valik_local_prefilter_test PUBLIC stellar_local_query_prefilter)
