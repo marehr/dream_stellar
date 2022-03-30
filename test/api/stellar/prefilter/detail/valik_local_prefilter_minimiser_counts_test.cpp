@@ -9,6 +9,8 @@
 
 TEST(valik_local_prefilter_minimiser_counts, query15_minLength_15_maxError_0)
 {
+    using TMinimiserCounter = minimiser_counter_state<seqan::Dna5>;
+
     auto lqpindex = build_lqpindex();
 
     seqan::String<seqan::Dna5> sequence0{"TAGAC" "TAACCGCAGAACACG" "ACTCCTCTAC"};
@@ -24,11 +26,13 @@ TEST(valik_local_prefilter_minimiser_counts, query15_minLength_15_maxError_0)
 
     seqan::String<seqan::Dna5> raw_query{"TAACCGCAGAACACG"};
 
-    minimiser_counter_state counter{
+    TMinimiserCounter counter{
         .lqpindex = lqpindex,
         .query_sequence = raw_query,
         .subquery_size = minLength
     };
+
+    counter.init();
 
     minimiser_thresholder thresholder{lqpindex, minLength, maxError};
     EXPECT_EQ(thresholder.min_number_of_minimisers(), 4u);
@@ -36,6 +40,7 @@ TEST(valik_local_prefilter_minimiser_counts, query15_minLength_15_maxError_0)
 
     EXPECT_EQ(counter.subquery(), "TAACCGCAGAACACG");
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 0u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{32, 21, 29, 14, 52}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -48,6 +53,8 @@ TEST(valik_local_prefilter_minimiser_counts, query15_minLength_15_maxError_0)
 
 TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
 {
+    using TMinimiserCounter = minimiser_counter_state<seqan::Dna5>;
+
     auto lqpindex = build_lqpindex();
 
     seqan::String<seqan::Dna5> sequence0{"TAGAC" "TAACCGCAGAACACG" "ACTCCTCTAC"};
@@ -63,11 +70,13 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
 
     seqan::String<seqan::Dna5> raw_query{"TTTAATT" "TAACCGCAGAACACG" "CAAGT"};
 
-    minimiser_counter_state counter{
+    TMinimiserCounter counter{
         .lqpindex = lqpindex,
         .query_sequence = raw_query,
         .subquery_size = minLength
     };
+
+    counter.init();
 
     minimiser_thresholder thresholder{lqpindex, minLength, maxError};
     EXPECT_EQ(thresholder.min_number_of_minimisers(), 4u);
@@ -75,6 +84,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
 
     EXPECT_EQ(counter.subquery(), "TTTAATTTAACCGCA" /*"GAACACGCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 0u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{76, 79, 51, 32, 21}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -86,6 +96,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // same minimiser
     EXPECT_EQ(counter.subquery(), /*"T"*/ "TTAATTTAACCGCAG" /*"AACACGCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 2u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{76, 79, 51, 32, 21}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -97,6 +108,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TT"*/ "TAATTTAACCGCAGA" /*"ACACGCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 2u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{76, 79, 51, 32, 21, 29}));
     EXPECT_EQ(counter.minimiser_count(), 6u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 5u);
@@ -108,6 +120,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTT"*/ "AATTTAACCGCAGAA" /*"CACGCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 3u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{79, 51, 32, 21, 29}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -119,6 +132,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTA"*/ "ATTTAACCGCAGAAC" /*"ACGCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 4u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{79, 51, 32, 21, 29, 14}));
     EXPECT_EQ(counter.minimiser_count(), 6u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 5u);
@@ -130,6 +144,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAA"*/ "TTTAACCGCAGAACA" /*"CGCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 5u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{51, 32, 21, 29, 14}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -141,6 +156,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAAT"*/ "TTAACCGCAGAACAC" /*"GCAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 6u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{32, 21, 29, 14}));
     EXPECT_EQ(counter.minimiser_count(), 4u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 3u);
@@ -152,6 +168,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAATT"*/ "TAACCGCAGAACACG" /*"CAAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 7u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{32, 21, 29, 14, 52}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -163,6 +180,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAATTT"*/ "AACCGCAGAACACGC" /*"AAGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 8u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{21, 29, 14, 52, 20}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -174,6 +192,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // same minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAATTTA"*/ "ACCGCAGAACACGCA" /*"AGT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 11u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{21, 29, 14, 52, 20}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -185,6 +204,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // same minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAATTTAA"*/ "CCGCAGAACACGCAA" /*"GT"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 11u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{21, 29, 14, 52, 20}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -196,6 +216,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // new minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAATTTAAC"*/ "CGCAGAACACGCAAG" /*"T"*/);
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 11u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{29, 14, 52, 20, 31}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
@@ -207,6 +228,7 @@ TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
     // same minimiser
     EXPECT_EQ(counter.subquery(), /*"TTTAATTTAACC"*/ "GCAGAACACGCAAGT");
     EXPECT_TRUE(counter.next());
+    EXPECT_EQ(counter.next_unique_position(), 13u);
     EXPECT_EQ(counter.minimiser_hashes(), (std::vector<size_t>{29, 14, 52, 20, 31}));
     EXPECT_EQ(counter.minimiser_count(), 5u);
     EXPECT_EQ(thresholder.get(counter.minimiser_count()), 4u);
