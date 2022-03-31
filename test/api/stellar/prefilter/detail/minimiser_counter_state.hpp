@@ -140,13 +140,55 @@ struct minimiser_counter_state2
             *upper_bound_it;
         std::cout << "upper_bound(" << window_subquery_size << "): < value: " << (upper_bound_value) << ", distance: " << upper_bound_distance << std::endl;
 
-        _update_counting_vector();
+        _update_counting_vector_full();
         _update_next_event_in();
     }
 
-    void _update_counting_vector()
+    void _update_counting_vector_full()
     {
         [[maybe_unused]] auto const & ref = counting_agent.bulk_count(_minimiser_hashes_span());
+    }
+
+    void _update_counting_vector_rolling()
+    {
+        size_t next_event_in = std::min(_next_begin_event_in, _next_end_event_in);
+        bool is_begin_event = (next_event_in == _next_begin_event_in);
+        bool is_end_event = (next_event_in == _next_end_event_in);
+
+        auto membership_agent = lqpindex._ibf.membership_agent();
+
+        seqan3::debug_stream << "_update_counting_vector::is_begin_event: " << (is_begin_event ? "true" : "false") << std::endl;
+        seqan3::debug_stream << "_update_counting_vector::is_end_event: " << (is_end_event ? "true" : "false") << std::endl;
+
+        seqan3::debug_stream << "_update_counting_vector::bin_counts::before: " << bin_counts() << std::endl;
+        if (is_begin_event)
+        {
+            // first minimizer hash was moved out
+            // _minimiser_begin_position = _minimiser_begin_position + 1;
+            assert(_minimiser_begin_position > 0);
+            seqan3::debug_stream << "_update_counting_vector::-----------------------------: " << std::endl;
+            seqan3::debug_stream << "_update_counting_vector::leaving_minimiser_hash_at: " << (_minimiser_begin_position - 1) << std::endl;
+            size_t leaving_minimiser_hash = _complete_minimiser_hashes[_minimiser_begin_position - 1];
+            seqan3::debug_stream << "_update_counting_vector::leaving_minimiser_hash: " << leaving_minimiser_hash << std::endl;
+            auto bulk_contain = membership_agent.bulk_contains(leaving_minimiser_hash);
+            seqan3::debug_stream << "_update_counting_vector::bulk_contain: " << bulk_contain << std::endl;
+            counting_agent.result_buffer -= bulk_contain;
+        }
+
+        if (is_end_event)
+        {
+            // new last minimizer hash was moved in
+            // _minimiser_end_position = _minimiser_end_position + 1;
+            seqan3::debug_stream << "_update_counting_vector::+++++++++++++++++++++++++++++: " << std::endl;
+            seqan3::debug_stream << "_update_counting_vector::new_minimiser_hash_at: " << (_minimiser_end_position - 1) << std::endl;
+            size_t new_minimiser_hash = _complete_minimiser_hashes[_minimiser_end_position - 1];
+            seqan3::debug_stream << "_update_counting_vector::new_minimiser_hash: " << new_minimiser_hash << std::endl;
+            auto bulk_contain = membership_agent.bulk_contains(new_minimiser_hash);
+            seqan3::debug_stream << "_update_counting_vector::bulk_contain: " << bulk_contain << std::endl;
+            counting_agent.result_buffer += bulk_contain;
+        }
+        seqan3::debug_stream << "_update_counting_vector::bin_counts: " << bin_counts() << std::endl;
+
     }
 
     bool at_end()
@@ -160,11 +202,11 @@ struct minimiser_counter_state2
         bool is_begin_event = (next_event_in == _next_begin_event_in);
         bool is_end_event = (next_event_in == _next_end_event_in);
 
-        seqan3::debug_stream << "is_begin_event: " << (is_begin_event ? "true" : "false") << std::endl;
-        seqan3::debug_stream << "is_end_event: " << (is_end_event ? "true" : "false") << std::endl;
+        seqan3::debug_stream << "_update_minimiser_begin_end_position::is_begin_event: " << (is_begin_event ? "true" : "false") << std::endl;
+        seqan3::debug_stream << "_update_minimiser_begin_end_position::is_end_event: " << (is_end_event ? "true" : "false") << std::endl;
 
-        seqan3::debug_stream << "_minimiser_begin_position::before: " << _minimiser_begin_position << std::endl;
-        seqan3::debug_stream << "_minimiser_end_position::before: " << _minimiser_end_position << std::endl;
+        seqan3::debug_stream << "_update_minimiser_begin_end_position::_minimiser_begin_position::before: " << _minimiser_begin_position << std::endl;
+        seqan3::debug_stream << "_update_minimiser_begin_end_position::_minimiser_end_position::before: " << _minimiser_end_position << std::endl;
 
         if (is_begin_event)
         {
@@ -175,8 +217,8 @@ struct minimiser_counter_state2
         {
             ++_minimiser_end_position;
         }
-        seqan3::debug_stream << "_minimiser_begin_position: " << _minimiser_begin_position << std::endl;
-        seqan3::debug_stream << "_minimiser_end_position: " << _minimiser_end_position << std::endl;
+        seqan3::debug_stream << "_update_minimiser_begin_end_position::_minimiser_begin_position: " << _minimiser_begin_position << std::endl;
+        seqan3::debug_stream << "_update_minimiser_begin_end_position::_minimiser_end_position: " << _minimiser_end_position << std::endl;
     }
 
     void _update_next_event_in()
@@ -227,7 +269,7 @@ struct minimiser_counter_state2
             seqan3::debug_stream << "_complete_minimiser_kmer_begin_positions: " << _complete_minimiser_kmer_begin_positions << std::endl;
 
             _update_minimiser_begin_end_position();
-            _update_counting_vector();
+            _update_counting_vector_rolling();
             _update_next_event_in();
         }
     }
