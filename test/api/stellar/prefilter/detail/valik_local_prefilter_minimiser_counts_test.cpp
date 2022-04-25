@@ -9,7 +9,7 @@
 
 TEST(valik_local_prefilter_minimiser_counts, query15_minLength_15_maxError_0)
 {
-    using TMinimiserCounter = minimiser_counter_state<seqan::Dna5>;
+    using TMinimiserCounter = minimiser_counter_state2<seqan::Dna5>;
 
     auto lqpindex = build_lqpindex();
 
@@ -57,7 +57,7 @@ TEST(valik_local_prefilter_minimiser_counts, query15_minLength_15_maxError_0)
 
 TEST(valik_local_prefilter_minimiser_counts, query27_minLength_15_maxError_0)
 {
-    using TMinimiserCounter = minimiser_counter_state<seqan::Dna5>;
+    using TMinimiserCounter = minimiser_counter_state2<seqan::Dna5>;
 
     auto lqpindex = build_lqpindex();
 
