@@ -87,7 +87,6 @@ add_library ("${PROJECT_NAME}_interface" INTERFACE)
 # target_link_libraries ("${PROJECT_NAME}_interface" INTERFACE seqan3::seqan3)
 target_include_directories ("${PROJECT_NAME}_interface" INTERFACE ../include)
 target_compile_options ("${PROJECT_NAME}_interface" INTERFACE "-pedantic" "-Wall" "-Wextra")
-target_compile_features ("${PROJECT_NAME}_interface" INTERFACE cxx_std_17)
 
 # ----------------------------------------------------------------------------
 # Dependencies
@@ -116,8 +115,8 @@ target_compile_definitions ("${PROJECT_NAME}_interface" INTERFACE -DSEQAN_DATE="
 # Add CXX flags found by find_package (SeqAn).
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
-# Require at least C++-14
-target_compile_features ("${PROJECT_NAME}_interface" INTERFACE cxx_relaxed_constexpr)
+# Require at least C++-17
+target_compile_features ("${PROJECT_NAME}_interface" INTERFACE cxx_std_17)
 
 # Require OpenMP
 find_package (OpenMP) # requires cmake 3.10
