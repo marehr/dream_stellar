@@ -53,7 +53,7 @@ jobs:
             build: header
             build_threads: 2
             test_threads: 2
-            cmake: 3.23.1
+            cmake: 3.10.3
             requires_toolchain: true
             requires_ccache: true
             skip_build_tests: false
