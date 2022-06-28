@@ -5,3 +5,6 @@ target_compile_definitions (valik_local_prefilter_threshold_test PUBLIC -DSTELLA
 
 add_api_test (valik_local_prefilter_test.cpp)
 target_compile_definitions (valik_local_prefilter_test PUBLIC -DSTELLAR_MINIMISER_THRESHOLD_INLINE_SRC=1)
+
+add_api_test (valik_local_prefilter_minimiser_counts_test.cpp)
+target_compile_definitions (valik_local_prefilter_minimiser_counts_test PUBLIC -DSTELLAR_MINIMISER_THRESHOLD_INLINE_SRC=1)
