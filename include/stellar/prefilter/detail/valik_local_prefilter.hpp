@@ -1,5 +1,10 @@
 #pragma once
 
+// DEBUG: remove me
+#include <seqan3/alphabet/views/to_rank.hpp>
+#include <seqan3/core/debug_stream.hpp>
+#include <bitset>
+
 #include <seqan/sequence.h>
 #include <seqan/stream.h>
 
@@ -64,11 +69,44 @@ void valik_local_prefilter(
     valik::query_record record{};
     record.sequence = std::vector<seqan3::dna4>{dna4_sequence_view.begin(), dna4_sequence_view.end()};
 
+#if STELLAR_DEBUG_MINIMISER
+    std::cout << "sequence: " << sequence << std::endl;
+    seqan3::debug_stream << "rank_sequence: " << (sequence | seqan3::views::to_rank) << std::endl;
+    seqan3::debug_stream << "dna4_sequence: " << record.sequence << std::endl;
+    seqan3::debug_stream << "dna4_rank_sequence: " << (record.sequence | seqan3::views::to_rank) << std::endl;
+
+    std::cout << "minLength: " << (int)minLength << std::endl;
+    std::cout << "maxError: " << (int)maxError << std::endl;
+    std::cout << "lqpindex._kmer_size: " << (int)lqpindex._kmer_size.value << std::endl;
+    std::cout << "lqpindex._window_size: " << (int)lqpindex._window_size.get() << std::endl;
+    std::cout << "lqpindex._seed: " << (int)lqpindex._seed.get() << std::endl;
+
+    print_all_minimiser_with_containment(sequence, lqpindex);
+#endif // STELLAR_DEBUG_MINIMISER
+
     std::span<valik::query_record const> const records{&record, 1u};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> const & ibf = lqpindex._ibf;
 
     auto search_arguments = valik_local_prefilter_search_arguments(lqpindex, minLength, maxError);
     auto threshold = valik_local_prefilter_make_threshold(search_arguments);
+
+#if STELLAR_DEBUG_MINIMISER
+    raptor::threshold::threshold_parameters threshold_parameters = search_arguments.make_threshold_parameters();
+    std::vector<size_t> threshold_probabilistic_data = raptor::threshold::precompute_threshold(threshold_parameters);
+    std::vector<size_t> threshold_probabilistic_correction = raptor::threshold::precompute_correction(threshold_parameters);
+    std::cout << "threshold_probabilistic_data: [";
+    for (size_t data: threshold_probabilistic_data)
+        std::cout << data << ", ";
+    std::cout << "]" << std::endl;
+    std::cout << "threshold_probabilistic_correction: [";
+    for (size_t correction: threshold_probabilistic_correction)
+        std::cout << correction << ", ";
+    std::cout << "]" << std::endl;
+    for (size_t i = 0; i < 20; ++i)
+    {
+        std::cout << "threshold[#minimiser = " << i << "]: " << threshold.get(i) << std::endl;
+    }
+#endif // STELLAR_DEBUG_MINIMISER
 
     std::vector<valik::query_result> query_results = valik::local_prefilter(
         /*std::span<query_record const> const &*/ records,
