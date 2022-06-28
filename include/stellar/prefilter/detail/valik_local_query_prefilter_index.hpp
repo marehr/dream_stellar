@@ -1,5 +1,8 @@
 #pragma once
 
+// DEBUG
+#include <stellar/prefilter/detail/print_minimiser.hpp>
+
 #include <seqan3/search/dream_index/interleaved_bloom_filter.hpp>
 #include <seqan3/search/views/minimiser_hash.hpp>
 
@@ -40,9 +43,18 @@ struct valik_local_query_prefilter_index
         auto const minimiser_begin = minimiser_view.begin();
         auto const minimiser_end = minimiser_view.end();
         auto minimiser_it = minimiser_begin;
-
+#if STELLAR_DEBUG_MINIMISER
+        std::cout << "_kmer_size: " << (int)_kmer_size.value << std::endl;
+        std::cout << "_window_size: " << (int)_window_size.get() << std::endl;
+        std::cout << "_seed: " << (int)_seed.get() << std::endl;
+#endif // STELLAR_DEBUG_MINIMISER
         for (; minimiser_it != minimiser_end; ++minimiser_it)
         {
+#if STELLAR_DEBUG_MINIMISER
+            print_minimiser(minimiser_it, minimiser_begin, _kmer_size.value, sequence, "database[]");
+            std::cout << std::endl;
+#endif // STELLAR_DEBUG_MINIMISER
+
             size_t const hash = *minimiser_it;
             _ibf.emplace(hash, bin_index);
         }
