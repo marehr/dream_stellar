@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+// DEBUG: remove me
+#include <seqan3/core/debug_stream.hpp>
+
 #include "detail/build_lqpindex.hpp"
 
 #include <stellar/stellar_types.hpp>
@@ -142,6 +145,26 @@ TEST(LocalQueryPrefilter, LocalQueryPrefilter)
                     ADD_FAILURE() << "There should be only 4 queryIDs";
                 break;
             };
+
+#if STELLAR_DEBUG_MINIMISER
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << std::endl;
+            std::cout << "queryID: " << queryID << std::endl;
+            std::cout << "querySegment: " << queryFilter << std::endl;
+
+            // collect all seen databases
+            for (TDatabaseSegment databaseSegment : databaseSegments)
+            {
+                std::cout << "\tdatabaseID: " << getDatabaseID(databaseSegment) << std::endl;
+                std::cout << "\tdatabaseSegment: " << databaseSegment.asInfixSegment() << std::endl;
+            }
+
+            std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+            std::cout << std::endl;
+#endif // STELLAR_DEBUG_MINIMISER
         });
     }
 
