@@ -5,3 +5,4 @@ target_link_libraries (valik_local_prefilter_threshold_test PUBLIC stellar_local
 
 add_api_test (valik_local_prefilter_test.cpp)
 target_link_libraries (valik_local_prefilter_test PUBLIC stellar_local_query_prefilter)
+target_compile_definitions (valik_local_prefilter_test PUBLIC -DSTELLAR_DEBUG_MINIMISER=1)
