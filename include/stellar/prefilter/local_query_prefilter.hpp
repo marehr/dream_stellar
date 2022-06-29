@@ -92,7 +92,7 @@ public:
     {
         // TODO: we somehow need to calculate this
         // TODO: not sure if this expression epsilon * minLength is correct
-        size_t const maxError = 1u;
+        size_t const maxError = 0u;
         assert(_prefilter_ptr != nullptr);
 
         auto binIDToDatabaseSegment = [&](size_t const binID) -> TDatabaseSegment
