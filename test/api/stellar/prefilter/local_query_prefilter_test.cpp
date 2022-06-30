@@ -125,19 +125,19 @@ TEST(LocalQueryPrefilter, LocalQueryPrefilter)
                 case 3:
                     EXPECT_EQ(querySegment, TQuerySegment(queries[3], 0, seqan::length(queries[3])));
 
-                    EXPECT_EQ(databaseSegments.size(), 2);
-                    EXPECT_EQ(getDatabaseIDs(databaseSegments), (std::vector<size_t>{0, 2}));
+                    EXPECT_EQ(databaseSegments.size(), 1);
+                    EXPECT_EQ(getDatabaseIDs(databaseSegments), (std::vector<size_t>{0}));
                     EXPECT_EQ(databaseSegments,
                         (std::vector<TDatabaseSegment>{
                             // D0: TAGACTAACCGC[AGAACACGACTCCTCTAC]
                             //                  ||||||||||||||||||
                             // Q3: TTGAGACGAAT [AGAACACGACTCCTCTAC]CTTGTGGCA
                             {databases[0], 0, seqan::length(databases[0])},
-                            // NOTE: This is a false-positive
-                            // D2: TACGCATATCTGGTAACCGC[AGAACACGA]A
-                            //                          |||||||||
-                            // Q3: TTGAGACGAAT         [AGAACACGA]CTCCTCTACCTTGTGGCA
-                            {databases[2], 0, seqan::length(databases[2])},
+                            // // NOTE: This is a false-positive
+                            // // D2: TACGCATATCTGGTAACCGC[AGAACACGA]A
+                            // //                          |||||||||
+                            // // Q3: TTGAGACGAAT         [AGAACACGA]CTCCTCTACCTTGTGGCA
+                            // {databases[2], 0, seqan::length(databases[2])},
                         })
                     );
                 break;
