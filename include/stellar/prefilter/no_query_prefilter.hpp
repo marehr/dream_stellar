@@ -2,8 +2,9 @@
 #pragma once
 
 #include <seqan3/std/span>
+#include <variant>
 
-#include <stellar/stellar_types.hpp>
+#include <stellar/options/index_options.hpp>
 
 #include <stellar/prefilter/database_agent_distributer.hpp>
 #include <stellar/prefilter/prefilter.hpp>
@@ -28,16 +29,22 @@ struct NoQueryPrefilter : stellar::prefilter<TAlphabet>
         TAgentSplitter agentSplitter = TAgentSplitter{}
     ) :
         _databases{databases},
-        _queryFilter{std::move(queryFilter)},
+        _queryQGramIndex{},
+        _queryFilter{std::move(queryFilter)}, // stellar::StellarSwiftPattern
         _splitter{std::move(agentSplitter)}
     {}
 
     template <typename TStringSet = StringSet<String<TAlphabet> > >
     NoQueryPrefilter(
+        stellar::IndexOptions const options,
         StringSet<String<TAlphabet> > const & databases,
-        std::enable_if_t<!std::is_same_v<TQueryFilter, TStringSet const &>, TStringSet const &> queries
+        std::enable_if_t<!std::is_same_v<TQueryFilter, TStringSet const &>, TStringSet const &> queries,
+        TAgentSplitter agentSplitter = TAgentSplitter{}
     ) :
-        NoQueryPrefilter{databases, TQueryFilter{queries}}
+        _databases{databases},
+        _queryQGramIndex{queries, options},
+        _queryFilter{_queryQGramIndex.createSwiftPattern()},
+        _splitter{std::move(agentSplitter)}
     {}
 
     using TDatabaseSegment = stellar::StellarDatabaseSegment<TAlphabet>;
@@ -61,7 +68,37 @@ struct NoQueryPrefilter : stellar::prefilter<TAlphabet>
     }
 
 private:
-    StringSet<String<TAlphabet> > const & _databases{};
+
+    struct QGramIndexVariant : std::variant<stellar::StellarQGramIndex<TAlphabet> *, stellar::StellarIndex<TAlphabet>>
+    {
+        using TBase = std::variant<stellar::StellarQGramIndex<TAlphabet> *, stellar::StellarIndex<TAlphabet>>;
+
+        QGramIndexVariant() = default;
+
+        QGramIndexVariant(StringSet<String<TAlphabet> > const & queries, stellar::IndexOptions const & options)
+            : TBase{}
+        {
+            this->template emplace<stellar::StellarIndex<TAlphabet>>(queries, options);
+        }
+
+        QGramIndexVariant(stellar::StellarQGramIndex<TAlphabet> & qgramIndex)
+            : TBase{&qgramIndex}
+        {}
+
+        stellar::StellarSwiftPattern<TAlphabet> createSwiftPattern()
+        {
+            return std::visit([](auto && index) -> stellar::StellarSwiftPattern<TAlphabet>
+            {
+                if constexpr (std::is_same_v<decltype(index), stellar::StellarQGramIndex<TAlphabet> * &>)
+                    return stellar::StellarSwiftPattern<TAlphabet>{*index};
+                else //if constexpr (std::is_same_v<decltype(index), stellar::StellarIndex<TAlphabet> &>)
+                    return index.createSwiftPattern();
+            }, *static_cast<TBase *>(this));
+        }
+    };
+
+    StringSet<String<TAlphabet> > const & _databases;
+    QGramIndexVariant _queryQGramIndex;
     std::vector<TDatabaseSegment> _databaseSegments{};
     TQueryFilter _queryFilter{};
     TAgentSplitter _splitter{};

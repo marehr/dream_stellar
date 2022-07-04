@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stellar/stellar_types.hpp>
+
 #include <stellar/app/prefilter/create_prefilter.hpp>
 
 #include <stellar/prefilter/no_query_prefilter.hpp>

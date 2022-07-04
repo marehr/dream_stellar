@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <stellar/stellar_index.hpp>
+#include <stellar/stellar_types.hpp>
 #include <stellar/prefilter/no_query_prefilter.hpp>
 #include <stellar/prefilter/whole_database_agent_splitter.hpp>
 #include <stellar/prefilter/nsegment_database_agent_splitter.hpp>
@@ -36,9 +36,6 @@ TYPED_TEST(NoQueryPrefilterTest, prefilter)
     options.threadCount = 3u;
     options.epsilon = {0, 1}; // 0.0
 
-    // TODO: this should be done in prefilter
-    stellar::StellarIndex<TAlphabet> index{queries, options};
-
     TAgentSplitter const splitter = []()
     {
         if constexpr (std::is_same_v<TAgentSplitter, stellar::NSegmentDatabaseAgentSplitter>)
@@ -49,7 +46,7 @@ TYPED_TEST(NoQueryPrefilterTest, prefilter)
             return stellar::WholeDatabaseAgentSplitter{};
         }
     }();
-    TPrefilter prefilter{databases, index.createSwiftPattern(), splitter};
+    TPrefilter prefilter{options, databases, queries, splitter};
 
     using TDatabaseSegment = stellar::StellarDatabaseSegment<TAlphabet>;
     std::vector<TDatabaseSegment> seenDatabases{};
