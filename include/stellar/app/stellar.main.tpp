@@ -331,36 +331,6 @@ struct StellarApp
     }
 };
 
-template <typename TAlphabet, typename TId>
-inline StellarComputeStatisticsCollection
-_parallelPrefilterStellar(
-    StringSet<String<TAlphabet> > const & databases,
-    StringSet<TId> const & databaseIDs,
-    StringSet<String<TAlphabet> > const & queries,
-    bool const databaseStrand,
-    StellarOptions const & options,
-    StellarSwiftPattern<TAlphabet> & swiftPattern,
-    StringSet<QueryMatches<StellarMatch<String<TAlphabet> const, TId> > > & matches,
-    stellar_kernel_runtime & stellar_kernel_runtime)
-{
-    std::unique_ptr<stellar::prefilter<TAlphabet>> prefilter
-        = StellarApp<TAlphabet>::select_prefilter(options, databases, queries, swiftPattern);
-
-    DatabaseIDMap<TAlphabet> databaseIDMap{databases, databaseIDs};
-    QueryIDMap<TAlphabet> queryIDMap{queries};
-
-    return StellarApp<TAlphabet>::parallel_prefilter
-    (
-        *prefilter,
-        databaseIDMap,
-        queryIDMap,
-        databaseStrand,
-        options,
-        stellar_kernel_runtime,
-        matches
-    );
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // Initializes a Pattern object with the query sequences,
 //  and calls _parallelPrefilterStellar for each database sequence
@@ -410,15 +380,22 @@ _stellarMain(
 
             StellarComputeStatisticsCollection computeStatistics = stellar_runtime.forward_strand_stellar_time.parallel_prefiltered_stellar_time.measure_time([&]()
             {
-                return _parallelPrefilterStellar(
-                    databases,
-                    databaseIDs,
-                    queries,
+                std::unique_ptr<stellar::prefilter<TAlphabet>> prefilter
+                    = StellarApp<TAlphabet>::select_prefilter(options, databases, queries, swiftPattern);
+
+                DatabaseIDMap<TAlphabet> databaseIDMap{databases, databaseIDs};
+                QueryIDMap<TAlphabet> queryIDMap{queries};
+
+                return StellarApp<TAlphabet>::parallel_prefilter
+                (
+                    *prefilter,
+                    databaseIDMap,
+                    queryIDMap,
                     databaseStrand,
                     options,
-                    swiftPattern,
-                    forwardMatches,
-                    stellar_runtime.forward_strand_stellar_time.parallel_prefiltered_stellar_time);
+                    stellar_runtime.forward_strand_stellar_time.parallel_prefiltered_stellar_time,
+                    forwardMatches
+                );
             });
 
             // standard output:
@@ -462,15 +439,22 @@ _stellarMain(
 
             StellarComputeStatisticsCollection computeStatistics = stellar_runtime.reverse_strand_stellar_time.parallel_prefiltered_stellar_time.measure_time([&]()
             {
-                return _parallelPrefilterStellar(
-                    databases,
-                    databaseIDs,
-                    queries,
+                std::unique_ptr<stellar::prefilter<TAlphabet>> prefilter
+                    = StellarApp<TAlphabet>::select_prefilter(options, databases, queries, swiftPattern);
+
+                DatabaseIDMap<TAlphabet> databaseIDMap{databases, databaseIDs};
+                QueryIDMap<TAlphabet> queryIDMap{queries};
+
+                return StellarApp<TAlphabet>::parallel_prefilter
+                (
+                    *prefilter,
+                    databaseIDMap,
+                    queryIDMap,
                     databaseStrand,
                     options,
-                    swiftPattern,
-                    reverseMatches,
-                    stellar_runtime.reverse_strand_stellar_time.parallel_prefiltered_stellar_time);
+                    stellar_runtime.reverse_strand_stellar_time.parallel_prefiltered_stellar_time,
+                    reverseMatches
+                );
             });
 
             // standard output:
