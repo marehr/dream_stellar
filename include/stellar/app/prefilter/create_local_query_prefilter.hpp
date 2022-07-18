@@ -84,7 +84,7 @@ struct CreatePrefilter<LocalQueryPrefilter<TAlphabet>>
             }
         }
 
-        TPrefilter prefilter{databases, queries, std::move(queryPrefilterIndex)};
+        TPrefilter prefilter{options, databases, queries, std::move(queryPrefilterIndex)};
         auto ibf_end = std::chrono::high_resolution_clock::now();
         double ibf_time = std::chrono::duration_cast<std::chrono::duration<double>>(ibf_end - ibf_start).count();
 
