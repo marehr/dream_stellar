@@ -23,6 +23,7 @@
 
 #pragma once
 
+#define STELLAR_DEBUG_LOCAL_PREFILTER 0
 #define STELLAR_USE_LOCAL_QUERY_PREFILTER 1
 
 #include <variant>
@@ -175,6 +176,10 @@ struct StellarApp
             StellarOptions localOptions = options;
             StellarComputeStatisticsPartialCollection localPartialStatistics{computeStatistics.size()};
             stellar::stellar_kernel_runtime local_runtime{};
+
+    #if STELLAR_DEBUG_LOCAL_PREFILTER
+            std::cout << "request agent(" << (&agent - &prefilterAgents[0]) << ") to prefilter" << std::endl;
+    #endif // STELLAR_DEBUG_LOCAL_PREFILTER
 
             agent.prefilter([&](TDatabaseSegments const & databaseSegments, TQueryFilter & localSwiftPattern)
             {
