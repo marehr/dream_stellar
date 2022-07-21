@@ -3,11 +3,18 @@
 
 #include <stellar/test/prefilter/local_query_prefilter/minimiser_window/seqan3_minimiser_window.hpp>
 
-TEST(minimiser_window_test, increasing_sequence)
+template <typename TMinimiserWindow>
+struct minimiser_window_test : public ::testing::Test
+{};
+
+using AgentSplitter = ::testing::Types<stellar::test::seqan3_minimiser_window<int>>;
+TYPED_TEST_SUITE(minimiser_window_test, AgentSplitter);
+
+TYPED_TEST(minimiser_window_test, increasing_sequence)
 {
     std::vector<int> values{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
-    stellar::test::seqan3_minimiser_window<int> minimiser_window{4};
+    TypeParam minimiser_window{4};
 
     auto it = minimiser_window.initialize(values.begin(), values.end());
 
@@ -69,11 +76,11 @@ TEST(minimiser_window_test, increasing_sequence)
     EXPECT_EQ(it, values.end());
 }
 
-TEST(minimiser_window_test, decreasing_sequence)
+TYPED_TEST(minimiser_window_test, decreasing_sequence)
 {
     std::vector<int> values{10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 
-    stellar::test::seqan3_minimiser_window<int> minimiser_window{4};
+    TypeParam minimiser_window{4};
 
     auto it = minimiser_window.initialize(values.begin(), values.end());
 
@@ -135,11 +142,11 @@ TEST(minimiser_window_test, decreasing_sequence)
     EXPECT_EQ(it, values.end());
 }
 
-TEST(minimiser_window_test, random_sequence)
+TYPED_TEST(minimiser_window_test, random_sequence)
 {
     std::vector<int> values{2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6};
 
-    stellar::test::seqan3_minimiser_window<int> minimiser_window{4};
+    TypeParam minimiser_window{4};
 
     auto it = minimiser_window.initialize(values.begin(), values.end());
 
@@ -236,11 +243,11 @@ TEST(minimiser_window_test, random_sequence)
     EXPECT_EQ(it, values.end());
 }
 
-TEST(minimiser_window_test, same_sequence)
+TYPED_TEST(minimiser_window_test, same_sequence)
 {
     std::vector<int> values{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    stellar::test::seqan3_minimiser_window<int> minimiser_window{4};
+    TypeParam minimiser_window{4};
 
     auto it = minimiser_window.initialize(values.begin(), values.end());
 
