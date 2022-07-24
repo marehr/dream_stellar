@@ -44,6 +44,8 @@ struct stellar_minimiser_window
         this->unsorted_begin = {this->sorted_end.ptr + 1, this};
         this->unsorted_end = {std::copy(input_iterator, new_input_sentinel, this->unsorted_begin.ptr), this};
 
+        unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
+
         // initial minimiser is the first element in the sorted range
         //
         // Note recalculate_minimum will do:
@@ -52,7 +54,7 @@ struct stellar_minimiser_window
         //
         // Setting minimiser_it = sorted_begin makes the second range empty.
         this->minimiser_it = (mixed_ptr)(this->sorted_end - 1);
-        this->unsorted_minimiser_it = this->unsorted_begin - 1;
+        this->unsorted_minimiser_it = unsorted_infinity_it;
 
         std::cout << "INIT!" << std::endl;
         recalculate_minimum();
@@ -70,6 +72,8 @@ struct stellar_minimiser_window
      */
     bool cyclic_push(value_type const new_value)
     {
+        unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
+
         std::cout << "~~~~~~~~~~~~~~~~~~~" << std::endl;
         std::cout << "cyclic_push(" << new_value << "):" << std::endl;
         ++this->sorted_begin;
@@ -82,9 +86,20 @@ struct stellar_minimiser_window
             bool const minimiser_in_sorted = this->minimiser_it < (mixed_ptr)this->sorted_end;
             *this->unsorted_end = new_value;
             if (!minimiser_in_sorted)
+            {
+                // minimiser_in_unsorted: If the minimiser is already in the unsorted range, keep the current position
+                // unless a REAL smaller value appears.
+                // unsorted: [*5, 5, 6], 4, 4 <- should not change the position to the second 5
+                //
+                // ALSO
+                //
+                // unsorted: [5, 6, *4], 4 <- will just choose first 4 (as second on is not in window yet)
+                // unsorted: [6, *4, 4] <- a consecutive 4 will not change minimiser position (as current number didn't left the window)
                 this->unsorted_minimiser_it = indexed_minimum(this->unsorted_minimiser_it, this->unsorted_end);
-            else
+            } else {
+                // minimiser_in_sorted: "consecutive" runs of the same value should be the last one [0, 1, 0, *0]
                 this->unsorted_minimiser_it = indexed_minimum_less_equal(this->unsorted_minimiser_it, this->unsorted_end);
+            }
             ++this->unsorted_end;
 
             if (minimiser_left_window)
@@ -108,13 +123,13 @@ struct stellar_minimiser_window
                     sorted_minimizer_stack.pop_back();
                 } else
                 {
-                    this->minimiser_it = (mixed_ptr)(this->unsorted_begin - 1);
+                    // this->minimiser_it = (mixed_ptr)unsorted_infinity_it;
+                    // SAME AS
+                    this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
                 }
             }
-            // TODO: not sure if correct, but we filter out same value runs
-            // bool is_same_sorted_value = minimiser_left_window && *previous_minimiser_it == *this->minimiser_it;
-            // previous_minimiser_it = is_same_sorted_value ? this->minimiser_it : previous_minimiser_it;
-            // this->unsorted_minimiser_it = this->unsorted_minimiser_it;
+
+            this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
             this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
         }
         this->diagnostics();
@@ -206,7 +221,7 @@ protected:
     template <typename ptr_t>
     static constexpr ptr_t indexed_minimum_less_equal(ptr_t const old_it, ptr_t const new_it)
     {
-        return *new_it <= *old_it ? new_it : old_it;
+        return indexed_minimum(new_it, old_it);
     }
 
     // Note recalculate_minimum will do:
