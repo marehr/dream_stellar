@@ -251,55 +251,55 @@ TYPED_TEST(minimiser_window_test, same_sequence)
 
     auto it = minimiser_window.initialize(values.begin(), values.end());
 
-    // [0, 0, 0, 0], 0, 0, 0, 0, 0, 0, 0
+    // [0, 0, 0, *0], 0, 0, 0, 0, 0, 0, 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 3);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, [0, 0, 0, 0], 0, 0, 0, 0, 0, 0
+    // 0, [0, 0, *0, 0], 0, 0, 0, 0, 0, 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 4);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, 0, [0, 0, 0, 0], 0, 0, 0, 0, 0
+    // 0, 0, [0, *0, 0, 0], 0, 0, 0, 0, 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 5);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, 0, 0, [0, 0, 0, 0], 0, 0, 0, 0
+    // 0, 0, 0, [*0, 0, 0, 0], 0, 0, 0, 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 6);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, 0, 0, 0, [0, 0, 0, 0], 0, 0, 0
+    // 0, 0, 0, 0, [0, 0, 0, *0], 0, 0, 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 7);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), true);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, 0, 0, 0, 0, [0, 0, 0, 0], 0, 0
+    // 0, 0, 0, 0, 0, [0, 0, *0, 0], 0, 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 8);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, 0, 0, 0, 0, 0, [0, 0, 0, 0], 0
+    // 0, 0, 0, 0, 0, 0, [0, *0, 0, 0], 0
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 9);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
     EXPECT_EQ(minimiser_window.min(), 0);
     ++it;
 
-    // 0, 0, 0, 0, 0, 0, 0, [0, 0, 0, 0]
+    // 0, 0, 0, 0, 0, 0, 0, [*0, 0, 0, 0]
     EXPECT_NE(it, values.end());
     EXPECT_EQ(it - values.begin(), 10);
     EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
