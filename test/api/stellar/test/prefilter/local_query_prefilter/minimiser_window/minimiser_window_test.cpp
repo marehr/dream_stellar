@@ -471,7 +471,7 @@ TYPED_TEST(minimiser_window_test, random_reference_impl)
     {
         std::string str;
 
-        str += "seed: " + std::to_string(random_seed) + ", ";
+        str += "seed: " + std::to_string(random_seed) + "\n";
 
         auto it = values.begin();
 
