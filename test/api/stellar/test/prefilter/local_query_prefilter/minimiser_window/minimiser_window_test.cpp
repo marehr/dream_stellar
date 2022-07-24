@@ -3,6 +3,9 @@
 
 #include <stellar/test/prefilter/local_query_prefilter/minimiser_window/seqan3_minimiser_window.hpp>
 
+#include <numeric>
+#include <random>
+
 template <typename TMinimiserWindow>
 struct minimiser_window_test : public ::testing::Test
 {};
@@ -361,3 +364,79 @@ TYPED_TEST(minimiser_window_test, regression01)
     EXPECT_EQ(it, values.end());
 }
 
+TYPED_TEST(minimiser_window_test, random_reference_impl)
+{
+    std::random_device random_device{};
+    std::size_t random_seed = 0;//random_device();
+    std::mt19937_64 random_engine(random_seed);
+    std::uniform_int_distribution<> distribution(0, 20);
+
+    size_t window_size = std::uniform_int_distribution<>{3, 8}(random_engine);
+    size_t values_size = std::uniform_int_distribution<>{20, 100}(random_engine);
+    window_size = std::min(window_size, values_size);
+
+    std::vector<int> values(values_size, 0);
+
+    std::generate(values.begin(), values.end(), [&]()
+    {
+        return distribution(random_engine);
+    });
+
+    TypeParam minimiser_window{window_size};
+
+    auto it = minimiser_window.initialize(values.begin(), values.end());
+
+    auto value_window_it = values.begin();
+    auto value_window_sentinel = value_window_it + window_size;
+
+    auto minimiser = [](auto it, auto sen)
+    {
+        return std::min_element(it, sen, std::less_equal<int>{});
+    };
+
+    auto minimiser_it = minimiser(value_window_it, value_window_sentinel);
+    EXPECT_EQ(minimiser_window.min(), *minimiser_it) << "seed: " << random_seed;
+
+    auto diagnostics = [&]() -> std::string
+    {
+        std::string str;
+
+        str += "seed: " + std::to_string(random_seed) + ", ";
+
+        auto it = values.begin();
+
+        for (; it != value_window_it; ++it)
+            str += std::to_string(*it) + ", ";
+
+        str += "[";
+        for (; it != value_window_sentinel; ++it)
+            str += (it == minimiser_it ? "!" : "") + std::to_string(*it) + ", ";
+        str += "]";
+
+        for (; it != values.end(); ++it)
+            str += std::to_string(*it) + ", ";
+
+        return str;
+    };
+
+    for (; value_window_sentinel != values.end();)
+    {
+        ++it;
+        assert(it != values.end());
+        assert(it == value_window_sentinel);
+        ++value_window_it;
+        ++value_window_sentinel;
+
+        auto new_minimiser_it = minimiser(value_window_it, value_window_sentinel);
+        bool minimiser_left_window = minimiser_it < value_window_it;
+        bool smaller_overall_minimiser = *new_minimiser_it < *minimiser_it;
+        if (minimiser_left_window || smaller_overall_minimiser)
+            minimiser_it = new_minimiser_it;
+
+        bool new_minimiser = minimiser_window.cyclic_push(*it);
+        EXPECT_EQ(new_minimiser, minimiser_left_window || smaller_overall_minimiser) << diagnostics();
+
+        EXPECT_EQ(minimiser_window.min(), *minimiser_it) << diagnostics();
+
+    }
+}
