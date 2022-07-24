@@ -93,7 +93,7 @@ struct stellar_minimiser_window
                 //
                 // ALSO
                 //
-                // unsorted: [5, 6, *4], 4 <- will just choose first 4 (as second on is not in window yet)
+                // unsorted: [5, 6, *4], 4 <- will just choose first 4 (as second one is not in window yet)
                 // unsorted: [6, *4, 4] <- a consecutive 4 will not change minimiser position (as current number didn't left the window)
                 this->unsorted_minimiser_it = indexed_minimum(this->unsorted_minimiser_it, this->unsorted_end);
             } else {
@@ -102,35 +102,37 @@ struct stellar_minimiser_window
             }
             ++this->unsorted_end;
 
-            if (minimiser_left_window)
+            if (minimiser_left_window && sorted_range_empty)
             {
-                if (!sorted_range_empty)
-                {
-                    assert(!sorted_minimizer_stack.empty());
-                    this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
-                    // if sorted range and unsorted range have same "value", prefer the unsorted one
-                    // example:
-                    //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
-                    //  sorted:   [*0, 8, 18, ]
-                    //  unsorted: [!2147483647, ]
-                    //
-                    //  cyclic_push(8)
-                    //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
-                    //  sorted:   [*8, 18, ]
-                    //  unsorted: [2147483647, !8] <- prefer this eight, as 0 left the window and in that case we always
-                    //                                prefer the most right one.
-                    this->minimiser_it = indexed_minimum_less_equal(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
-                    sorted_minimizer_stack.pop_back();
-                } else
-                {
-                    // this->minimiser_it = (mixed_ptr)unsorted_infinity_it;
-                    // SAME AS
-                    this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
-                }
+                this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
+            } else if (minimiser_left_window)
+            {
+                assert(!sorted_minimizer_stack.empty());
+                this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
+                sorted_minimizer_stack.pop_back();
+                // if sorted range and unsorted range have same "value", prefer the unsorted one
+                // example:
+                //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
+                //  sorted:   [*0, 8, 18, ]
+                //  unsorted: [!2147483647, ]
+                //
+                //  cyclic_push(8)
+                //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
+                //  sorted:   [*8, 18, ]
+                //  unsorted: [2147483647, !8] <- prefer this eight, as 0 left the window and in that case we always
+                //                                prefer the most right one.
+                this->minimiser_it = indexed_minimum_less_equal(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
+            } else
+            {
+                // example:
+                //  sorted:   [0, 0, 0, *0, ]
+                //  unsorted: [!2147483647, ]
+                //
+                //  cyclic_push(0)
+                //  sorted:   [0, 0, *0, ] <- the active minimiser should not be overwritten (since minimiser didn't leave the window)
+                //  unsorted: [2147483647, !0] <- don't prefer this one
+                this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
             }
-
-            this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
-            this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
         }
         this->diagnostics();
 
