@@ -52,7 +52,7 @@ struct stellar_minimiser_window
         //
         // Setting minimiser_it = sorted_begin makes the second range empty.
         this->minimiser_it = (mixed_ptr)(this->sorted_end - 1);
-        this->unsorted_minimiser_it = this->unsorted_begin;
+        this->unsorted_minimiser_it = this->unsorted_begin - 1;
 
         std::cout << "INIT!" << std::endl;
         recalculate_minimum();
@@ -70,6 +70,7 @@ struct stellar_minimiser_window
      */
     bool cyclic_push(value_type const new_value)
     {
+        std::cout << "~~~~~~~~~~~~~~~~~~~" << std::endl;
         std::cout << "cyclic_push(" << new_value << "):" << std::endl;
         ++this->sorted_begin;
         bool sorted_range_empty = this->sorted_begin == this->sorted_end;
@@ -77,11 +78,14 @@ struct stellar_minimiser_window
         mixed_ptr previous_minimiser_it = this->minimiser_it;
 
         { // append new element
-            *this->unsorted_end = new_value;
-            this->unsorted_minimiser_it = indexed_minimum(this->unsorted_minimiser_it, this->unsorted_end);
-            ++this->unsorted_end;
-
             bool const minimiser_left_window = this->minimiser_it < (mixed_ptr)this->sorted_begin;
+            bool const minimiser_in_sorted = this->minimiser_it < (mixed_ptr)this->sorted_end;
+            *this->unsorted_end = new_value;
+            if (!minimiser_in_sorted)
+                this->unsorted_minimiser_it = indexed_minimum(this->unsorted_minimiser_it, this->unsorted_end);
+            else
+                this->unsorted_minimiser_it = indexed_minimum_less_equal(this->unsorted_minimiser_it, this->unsorted_end);
+            ++this->unsorted_end;
 
             if (minimiser_left_window)
             {
@@ -105,12 +109,12 @@ struct stellar_minimiser_window
         this->diagnostics();
 
         bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
+        std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+        std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
 
         if (sorted_range_empty)
         {
             std::cout << "REBUILD!" << std::endl;
-            std::cout << "BEFORE: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
-            std::cout << "BEFORE: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
             std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
 
             unsorted_ptr minimiser_backup_it = (unsorted_ptr)this->minimiser_it;
@@ -188,6 +192,12 @@ protected:
         return *new_it < *old_it ? new_it : old_it;
     }
 
+    template <typename ptr_t>
+    static constexpr ptr_t indexed_minimum_less_equal(ptr_t const old_it, ptr_t const new_it)
+    {
+        return *new_it <= *old_it ? new_it : old_it;
+    }
+
     // Note recalculate_minimum will do:
     // In range (sorted_end, minimiser_it] recompute minimiser backwards (old minimiser would have left window)
     // In range (minimiser_it, sorted_begin] set old minimiser value as it is still active in that range
@@ -199,11 +209,13 @@ protected:
         assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
 
         sorted_ptr sorted_it = this->sorted_end;
+        unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
         unsorted_ptr unsorted_it = this->unsorted_end;
         unsorted_ptr unsorted_sentinel = this->unsorted_begin;
 
         // This is will be in the sorted memory region
-        unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it;
+        bool in_initialization = this->unsorted_minimiser_it == unsorted_infinity_it;
+        unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it + (in_initialization ? 1 : 0);
 
         // unsorted is non-empty
         assert(unsorted_it != unsorted_sentinel);
@@ -216,13 +228,13 @@ protected:
         // M: minimiser_it
         // [ s1, s2, ..sM.., sW, e*  , u1, u2, ..uM.., uW] (old memory)
         //                       S|UM, UE,       M       ] U (pointer)
-        this->unsorted_minimiser_it = unsorted_sentinel - 1; // same as sorted_it
-        this->minimiser_it = mixed_ptr{unsorted_sentinel - 1};
+        this->unsorted_minimiser_it = unsorted_infinity_it; // same as sorted_it
+        this->minimiser_it = mixed_ptr{unsorted_infinity_it};
         // [ s1, s2, ..sM.., sW, uW  , u1, u2, ..uM.., uW] (new memory)
         *this->unsorted_minimiser_it = std::numeric_limits<value_type>::max();
 
         // construct minimiser from last to "first" element
-        std::cout << "minimiser_it: [" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
+        std::cout << "minimiser_it: M[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
         std::cout << "PRE_MINIMISER" << std::endl;
         for (; unsorted_it != current_minimiser_it; )
         {
@@ -232,7 +244,7 @@ protected:
             std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *unsorted_it << std::endl;
             *sorted_it = *unsorted_it;
             sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
-            std::cout << "new_minimiser_it: [" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
+            std::cout << "new_minimiser_it: S[" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
             if ((mixed_ptr)new_minimiser_it != this->minimiser_it)
             {
                 std::cout << "minimiser changed" << std::endl;
@@ -251,7 +263,7 @@ protected:
         std::cout << "sorted_it: S[" << sorted_it._debug_position() << "]: " << *sorted_it << std::endl;
         std::cout << "current_minimiser_it: U[" << current_minimiser_it._debug_position() << "]: " << *current_minimiser_it << std::endl;
         std::cout << "this->minimiser_it: S[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
-        {
+        if (!in_initialization) {
             sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_minimiser_it - window_size - 1);
             if ((mixed_ptr)current_minimiser_sorted_it != this->minimiser_it)
             {
