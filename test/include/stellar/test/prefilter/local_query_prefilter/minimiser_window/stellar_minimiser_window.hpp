@@ -92,8 +92,19 @@ struct stellar_minimiser_window
                 if (!sorted_range_empty)
                 {
                     assert(!sorted_minimizer_stack.empty());
-                    // TODO: if unsorted has better minimiser, use that one in this case
                     this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
+                    // if sorted range and unsorted range have same "value", prefer the unsorted one
+                    // example:
+                    //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
+                    //  sorted:   [*0, 8, 18, ]
+                    //  unsorted: [!2147483647, ]
+                    //
+                    //  cyclic_push(8)
+                    //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
+                    //  sorted:   [*8, 18, ]
+                    //  unsorted: [2147483647, !8] <- prefer this eight, as 0 left the window and in that case we always
+                    //                                prefer the most right one.
+                    this->minimiser_it = indexed_minimum_less_equal(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
                     sorted_minimizer_stack.pop_back();
                 } else
                 {
