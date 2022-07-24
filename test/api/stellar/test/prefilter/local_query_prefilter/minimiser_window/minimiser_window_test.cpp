@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include <stellar/test/prefilter/local_query_prefilter/minimiser_window/seqan3_minimiser_window.hpp>
+#include <stellar/test/prefilter/local_query_prefilter/minimiser_window/stellar_minimiser_window.hpp>
 
 #include <numeric>
 #include <random>
@@ -10,7 +11,10 @@ template <typename TMinimiserWindow>
 struct minimiser_window_test : public ::testing::Test
 {};
 
-using AgentSplitter = ::testing::Types<stellar::test::seqan3_minimiser_window<int>>;
+using AgentSplitter = ::testing::Types<
+    stellar::test::seqan3_minimiser_window<int>
+    ,stellar::test::stellar_minimiser_window<int>
+>;
 TYPED_TEST_SUITE(minimiser_window_test, AgentSplitter);
 
 TYPED_TEST(minimiser_window_test, increasing_sequence)
