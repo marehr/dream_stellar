@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <vector>
+#include <stdexcept>
 
 namespace stellar {
 namespace test {
@@ -20,6 +21,7 @@ struct stellar_minimiser_window
         window_size{window_size}
     {
         window_values.resize(2 * window_size + 1);
+        sorted_minimizer_stack.reserve(window_size);
     }
 
     value_type const & min() const
@@ -68,7 +70,9 @@ struct stellar_minimiser_window
      */
     bool cyclic_push(value_type const new_value)
     {
+        std::cout << "cyclic_push(" << new_value << "):" << std::endl;
         ++this->sorted_begin;
+        bool sorted_range_empty = this->sorted_begin == this->sorted_end;
 
         mixed_ptr previous_minimiser_it = this->minimiser_it;
 
@@ -78,10 +82,23 @@ struct stellar_minimiser_window
             ++this->unsorted_end;
 
             bool const minimiser_left_window = this->minimiser_it < (mixed_ptr)this->sorted_begin;
-            this->minimiser_it = (minimiser_left_window ? (mixed_ptr)(this->sorted_begin) : this->minimiser_it);
+
+            if (minimiser_left_window)
+            {
+                if (!sorted_range_empty)
+                {
+                    assert(!sorted_minimizer_stack.empty());
+                    // TODO: if unsorted has better minimiser, use that one in this case
+                    this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
+                    sorted_minimizer_stack.pop_back();
+                } else
+                {
+                    this->minimiser_it = (mixed_ptr)(this->unsorted_begin - 1);
+                }
+            }
             // TODO: not sure if correct, but we filter out same value runs
-            bool is_same_sorted_value = minimiser_left_window && *previous_minimiser_it == *this->minimiser_it;
-            previous_minimiser_it = is_same_sorted_value ? this->minimiser_it : previous_minimiser_it;
+            // bool is_same_sorted_value = minimiser_left_window && *previous_minimiser_it == *this->minimiser_it;
+            // previous_minimiser_it = is_same_sorted_value ? this->minimiser_it : previous_minimiser_it;
             // this->unsorted_minimiser_it = this->unsorted_minimiser_it;
             this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
         }
@@ -89,12 +106,14 @@ struct stellar_minimiser_window
 
         bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
 
-        if (this->sorted_begin == this->sorted_end)
+        if (sorted_range_empty)
         {
             std::cout << "REBUILD!" << std::endl;
-            std::cout << "previous_minimiser_it: " << (previous_minimiser_it - mixed_ptr{window_values.data(), this}) << std::endl;
-            std::cout << "this->minimiser_it: " << (this->minimiser_it - mixed_ptr{window_values.data(), this}) << std::endl;
-            std::cout << "this->unsorted_minimiser_it: " << (mixed_ptr{this->unsorted_minimiser_it} - mixed_ptr{window_values.data(), this}) << std::endl;
+            std::cout << "BEFORE: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+            std::cout << "BEFORE: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+            std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
+
+            unsorted_ptr minimiser_backup_it = (unsorted_ptr)this->minimiser_it;
             // TODO! not every rebuild changes minimum
             // initial minimiser is either the last element in the sorted range,
             // or if the current minimiser is in the unsorted list it must stay the same
@@ -105,14 +124,14 @@ struct stellar_minimiser_window
             // this->minimiser_it =
             //     minimiser_in_unsorted ?
             //     mixed_ptr{this->unsorted_minimiser_it} - (this->window_size + 1) :
-            //     mixed_ptr{this->sorted_begin};
+        //     mixed_ptr{this->sorted_begin};
             // std::cout << "NEW this->minimiser_it: " << (this->minimiser_it - mixed_ptr{window_values.data(), this}) << std::endl;
             recalculate_minimum();
 
             this->diagnostics();
-            std::cout << "AFTER: previous_minimiser_it: " << (previous_minimiser_it - mixed_ptr{window_values.data(), this}) << std::endl;
-            std::cout << "AFTER: this->minimiser_it: " << (this->minimiser_it - mixed_ptr{window_values.data(), this}) << std::endl;
-            std::cout << "AFTER: this->unsorted_minimiser_it: " << (mixed_ptr{this->unsorted_minimiser_it} - mixed_ptr{window_values.data(), this}) << std::endl;
+            std::cout << "AFTER: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+            std::cout << "AFTER: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+            std::cout << "AFTER: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
         }
 
         return minimiser_changed;
@@ -135,14 +154,32 @@ protected:
     void diagnostics()
     {
         std::cout << "stellar_minimiser_window:" << std::endl;
+        std::cout << "\tsorted_minimiser:   [";
+        bool minimizer_seen = false;
+        bool unsorted_minimizer_seen = false;
+        for (sorted_ptr ptr : sorted_minimizer_stack)
+        {
+            std::cout << ((mixed_ptr)ptr == this->minimiser_it ? "*" : "") << "[" << ptr._debug_position() << "]: " << *ptr << ", ";
+        }
+        std::cout << "]" << std::endl;
         std::cout << "\tsorted:   [";
         for (auto it = this->sorted_begin; it != this->sorted_end; ++it)
+        {
+            minimizer_seen |= (mixed_ptr)it == this->minimiser_it;
             std::cout << ((mixed_ptr)it == this->minimiser_it ? "*" : "") << *it << ", ";
+        }
         std::cout << "]" << std::endl;
         std::cout << "\tunsorted: [";
         for (auto it = this->unsorted_begin - 1; it != this->unsorted_end; ++it)
+        {
+            minimizer_seen |= (mixed_ptr)it == this->minimiser_it;
+            unsorted_minimizer_seen |= it == this->unsorted_minimiser_it;
             std::cout << ((mixed_ptr)it == this->minimiser_it ? "*" : "") << (it == this->unsorted_minimiser_it ? "!" : "") << *it << ", ";
+        }
         std::cout << "]" << std::endl;
+
+        assert(minimizer_seen);
+        assert(unsorted_minimizer_seen);
     }
 
     template <typename ptr_t>
@@ -156,6 +193,9 @@ protected:
     // In range (minimiser_it, sorted_begin] set old minimiser value as it is still active in that range
     void recalculate_minimum()
     {
+        // assert(sorted_minimizer_stack.empty());
+        sorted_minimizer_stack.clear(); // TODO: should already be done
+
         assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
 
         sorted_ptr sorted_it = this->sorted_end;
@@ -182,17 +222,25 @@ protected:
         *this->unsorted_minimiser_it = std::numeric_limits<value_type>::max();
 
         // construct minimiser from last to "first" element
+        std::cout << "minimiser_it: [" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
         std::cout << "PRE_MINIMISER" << std::endl;
         for (; unsorted_it != current_minimiser_it; )
         {
             --unsorted_it;
             --sorted_it;
-            std::cout << "U[" << (unsorted_it - unsorted_ptr{_valid_unsorted_data().first, this}) << "/" << (current_minimiser_it.ptr - _valid_unsorted_data().first) << "]: " << *unsorted_it << std::endl;
-            std::cout << "S[" << (sorted_it - sorted_ptr{_valid_sorted_data().first, this}) << "] = " << *sorted_it << " := " << *unsorted_it << std::endl;
+            std::cout << "U[" << unsorted_it._debug_position() << "/" << current_minimiser_it._debug_position() << "]: " << *unsorted_it << std::endl;
+            std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *unsorted_it << std::endl;
             *sorted_it = *unsorted_it;
-            this->minimiser_it = indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
-            *sorted_it = *this->minimiser_it;
-            std::cout << "S[" << (sorted_it - sorted_ptr{_valid_sorted_data().first, this}) << "] = " << *sorted_it << " := " << *this->minimiser_it << std::endl;
+            sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
+            std::cout << "new_minimiser_it: [" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
+            if ((mixed_ptr)new_minimiser_it != this->minimiser_it)
+            {
+                std::cout << "minimiser changed" << std::endl;
+                sorted_minimizer_stack.push_back(new_minimiser_it);
+            }
+            this->minimiser_it = (mixed_ptr)new_minimiser_it;
+            // *sorted_it = *this->minimiser_it; TODO: this is not needed anymore, we could memcopy now
+            std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *this->minimiser_it << std::endl;
 
             // vM+1, ..., vW: minimiser vi := min(ui, ..., uW)
             // [ s1, s2, ..., sM, sM+1..., sW, e*, u1, u2, ..., uM, uM+1 ..., uW] (old memory)
@@ -200,13 +248,27 @@ protected:
             // [ s1, s2, ..., sM, vM+1..., vW, uW, u1, u2, ..., uM, uM+1 ..., uW] (new memory)
         }
 
+        std::cout << "sorted_it: S[" << sorted_it._debug_position() << "]: " << *sorted_it << std::endl;
+        std::cout << "current_minimiser_it: U[" << current_minimiser_it._debug_position() << "]: " << *current_minimiser_it << std::endl;
+        std::cout << "this->minimiser_it: S[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
+        {
+            sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_minimiser_it - window_size - 1);
+            if ((mixed_ptr)current_minimiser_sorted_it != this->minimiser_it)
+            {
+                sorted_minimizer_stack.push_back(current_minimiser_sorted_it);
+            }
+        }
+
+        this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
+        sorted_minimizer_stack.pop_back();
+
         std::cout << "POST_MINIMISER" << std::endl;
         // set old minimiser from its position until the "first" element
         for (; unsorted_it != unsorted_sentinel; )
         {
             --unsorted_it;
             --sorted_it;
-            std::cout << "S[" << (sorted_it - sorted_ptr{_valid_sorted_data().first, this}) << "] = " << *sorted_it << " := " << *current_minimiser_it << std::endl;
+            std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *current_minimiser_it << std::endl;
             *sorted_it = *current_minimiser_it;
             mixed_ptr current_minimiser_sorted_it = mixed_ptr{current_minimiser_it} - window_size - 1;
             // assert(indexed_minimum((sorted_ptr)this->minimiser_it, sorted_it) == (sorted_ptr)current_minimiser_sorted_it);
@@ -267,6 +329,26 @@ protected:
             return ptr1.ptr < ptr2.ptr;
         }
 
+        std::ptrdiff_t _debug_position()
+        {
+#ifndef NDEBUG
+            auto [sorted_begin, sorted_end] = host_ptr->_valid_sorted_data();
+            if (std::is_same_v<derived_t, sorted_ptr> && sorted_begin <= ptr && ptr <= sorted_end)
+                return ptr - sorted_begin;
+
+            auto [unsorted_begin, unsorted_end] = host_ptr->_valid_unsorted_data();
+            if (std::is_same_v<derived_t, unsorted_ptr> && unsorted_begin - 1 <= ptr && ptr <= unsorted_end)
+                return ptr - unsorted_begin;
+
+            value_type * window_begin = host_ptr->window_values.data();
+            value_type * window_end = window_begin + host_ptr->window_values.size();
+            if (window_begin <= ptr && ptr <= window_end)
+                return ptr - window_begin;
+
+#endif
+            throw std::out_of_range{"_debug_position called, but ptr is invalid"};
+        }
+
         void _assert_bounds(bool const dereferencable = false) const
         {
 #ifndef NDEBUG
@@ -295,6 +377,7 @@ protected:
                 bool is_initialized =
                     in_range(sorted_begin, window_begin, window_end) &&
                     in_range(sorted_end, window_begin, window_end);
+                assert(is_initialized);
                 if (!implies(in_sorted && is_initialized, in_range(ptr, sorted_begin, sorted_end)))
                     std::cout << (dereferencable ? "*" : "") << "S: " << (sorted_begin - window_begin) << " <= " << (ptr - window_begin) << " < " << (sorted_end - window_begin) << std::endl;
                 assert(implies(in_sorted && is_initialized, in_range(ptr, sorted_begin, sorted_end)));
@@ -308,6 +391,7 @@ protected:
                 bool is_initialized =
                     in_range(unsorted_begin, window_begin, window_end) &&
                     in_range(unsorted_end, window_begin, window_end);
+                assert(is_initialized);
                 if (!implies(in_unsorted && is_initialized, in_range(ptr, unsorted_begin, unsorted_end)))
                     std::cout << (dereferencable ? "*" : "") << "U: " << (unsorted_begin - window_begin) << " <= " << (ptr - window_begin) << " < " << (unsorted_end - window_begin) << std::endl;
                 assert(implies(in_unsorted && is_initialized, in_range(ptr, unsorted_begin, unsorted_end)));
@@ -365,6 +449,8 @@ protected:
 
     mixed_ptr minimiser_it{};
     unsorted_ptr unsorted_minimiser_it{};
+
+    std::vector<sorted_ptr> sorted_minimizer_stack{};
 
     //!\brief Stored values per window. It is necessary to store them, because a shift can remove the current minimiser.
     std::vector<value_type> window_values{};
