@@ -82,10 +82,10 @@ struct stellar_minimiser_window
         mixed_ptr previous_minimiser_it = this->minimiser_it;
 
         { // append new element
-            bool const minimiser_left_window = this->minimiser_it < (mixed_ptr)this->sorted_begin;
-            bool const minimiser_in_sorted = this->minimiser_it < (mixed_ptr)this->sorted_end;
+            bool const previous_minimiser_left_window = previous_minimiser_it < (mixed_ptr)this->sorted_begin;
+            bool const previous_minimiser_was_in_sorted = previous_minimiser_it < (mixed_ptr)this->sorted_end;
             *this->unsorted_end = new_value;
-            if (!minimiser_in_sorted)
+            if (!previous_minimiser_was_in_sorted)
             {
                 // minimiser_in_unsorted: If the minimiser is already in the unsorted range, keep the current position
                 // unless a REAL smaller value appears.
@@ -97,19 +97,22 @@ struct stellar_minimiser_window
                 // unsorted: [6, *4, 4] <- a consecutive 4 will not change minimiser position (as current number didn't left the window)
                 this->unsorted_minimiser_it = indexed_minimum(this->unsorted_minimiser_it, this->unsorted_end);
             } else {
-                // minimiser_in_sorted: "consecutive" runs of the same value should be the last one [0, 1, 0, *0]
+                // previous_minimiser_was_in_sorted: "consecutive" runs of the same value should be the last one [0, 1, 0, *0]
                 this->unsorted_minimiser_it = indexed_minimum_less_equal(this->unsorted_minimiser_it, this->unsorted_end);
             }
             ++this->unsorted_end;
 
-            if (minimiser_left_window && sorted_range_empty)
+            if (previous_minimiser_left_window)
             {
-                this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
-            } else if (minimiser_left_window)
-            {
-                assert(!sorted_minimizer_stack.empty());
-                this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
-                sorted_minimizer_stack.pop_back();
+                if (sorted_range_empty)
+                {
+                    this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
+                } else
+                {
+                    assert(!sorted_minimizer_stack.empty());
+                    this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
+                    sorted_minimizer_stack.pop_back();
+                }
                 // if sorted range and unsorted range have same "value", prefer the unsorted one
                 // example:
                 //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
@@ -131,8 +134,13 @@ struct stellar_minimiser_window
                 //  cyclic_push(0)
                 //  sorted:   [0, 0, *0, ] <- the active minimiser should not be overwritten (since minimiser didn't leave the window)
                 //  unsorted: [2147483647, !0] <- don't prefer this one
-                this->minimiser_it = indexed_minimum<mixed_ptr>(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
+                this->minimiser_it = indexed_minimum(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
             }
+
+            // std::cout << "sorted_range_empty: " << (sorted_range_empty ? "true" : "false") << std::endl;
+            // std::cout << "previous_minimiser_left_window: " << (previous_minimiser_left_window ? "true" : "false") << std::endl;
+            // std::cout << "previous_minimiser_was_in_sorted: " << (previous_minimiser_was_in_sorted ? "true" : "false") << std::endl;
+            // assert(!sorted_range_empty || !previous_minimiser_was_in_sorted);
         }
         this->diagnostics();
 
@@ -145,19 +153,6 @@ struct stellar_minimiser_window
             std::cout << "REBUILD!" << std::endl;
             std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
 
-            unsorted_ptr minimiser_backup_it = (unsorted_ptr)this->minimiser_it;
-            // TODO! not every rebuild changes minimum
-            // initial minimiser is either the last element in the sorted range,
-            // or if the current minimiser is in the unsorted list it must stay the same
-            // bool minimiser_in_unsorted = this->minimiser_it == (mixed_ptr)this->unsorted_minimiser_it;
-            // std::cout << "minimiser_in_unsorted: " << (minimiser_in_unsorted ? "TRUE" : "FALSE") << std::endl;
-            // // Note: that in recalculate_minimum copies all unsorted elements into the sorted area
-            // // The sorted area is offset by this->window_size from the unsorted area.
-            // this->minimiser_it =
-            //     minimiser_in_unsorted ?
-            //     mixed_ptr{this->unsorted_minimiser_it} - (this->window_size + 1) :
-        //     mixed_ptr{this->sorted_begin};
-            // std::cout << "NEW this->minimiser_it: " << (this->minimiser_it - mixed_ptr{window_values.data(), this}) << std::endl;
             recalculate_minimum();
 
             this->diagnostics();
