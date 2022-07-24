@@ -437,7 +437,7 @@ TYPED_TEST(minimiser_window_test, regression02)
 TYPED_TEST(minimiser_window_test, random_reference_impl)
 {
     std::random_device random_device{};
-    std::size_t random_seed = 0;//random_device();
+    std::size_t random_seed = random_device();
     std::mt19937_64 random_engine(random_seed);
     std::uniform_int_distribution<> distribution(0, 20);
 
