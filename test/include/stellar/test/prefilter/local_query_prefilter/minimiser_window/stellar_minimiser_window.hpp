@@ -46,7 +46,9 @@ struct stellar_minimiser_window
 
         unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
         *unsorted_infinity_it = std::numeric_limits<value_type>::max();
-        this->unsorted_minimiser_it = unsorted_infinity_it;
+
+        // This will copy all values from unsorted to sorted [unsorted_begin, unsorted_end)
+        this->unsorted_minimiser_it = this->unsorted_begin;
 
         std::cout << "INIT!" << std::endl;
         recalculate_minimum(true);
@@ -219,8 +221,7 @@ protected:
     // In range (minimiser_it, sorted_begin] set old minimiser value as it is still active in that range
     void recalculate_minimum(bool in_initialization)
     {
-        // assert(sorted_minimizer_stack.empty());
-        sorted_minimizer_stack.clear(); // TODO: should already be done
+        sorted_minimizer_stack.clear();
 
         assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
 
@@ -230,8 +231,7 @@ protected:
         unsorted_ptr unsorted_sentinel = this->unsorted_begin;
 
         // This is will be in the sorted memory region
-        assert(!in_initialization || this->unsorted_minimiser_it == unsorted_infinity_it);
-        unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it + (in_initialization ? 1 : 0);
+        unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it;
 
         // unsorted is non-empty
         assert(unsorted_it != unsorted_sentinel);
