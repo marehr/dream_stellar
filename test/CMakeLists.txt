@@ -68,6 +68,7 @@ else ()
     # Fetch data and add the tests.
     include (data/datasources.cmake)
     add_subdirectory (api)
+    add_subdirectory (benchmark)
     add_subdirectory (cli)
     add_subdirectory (coverage)
 endif ()
