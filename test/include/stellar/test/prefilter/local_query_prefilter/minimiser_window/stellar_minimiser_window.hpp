@@ -392,7 +392,7 @@ protected:
             throw std::out_of_range{"_debug_position called, but ptr is invalid"};
         }
 
-        void _assert_bounds(bool const dereferencable = false) const
+        void _assert_bounds([[maybe_unused]] bool const dereferencable = false) const
         {
 #ifdef STELLAR_MINIMISER_WINDOW_DEBUG
             auto in_range = [](value_type * ptr, value_type * begin, value_type * end)
