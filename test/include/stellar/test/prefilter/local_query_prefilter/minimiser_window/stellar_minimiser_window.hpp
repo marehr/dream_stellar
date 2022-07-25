@@ -102,17 +102,28 @@ struct stellar_minimiser_window
             }
             ++this->unsorted_end;
 
-            if (previous_minimiser_left_window)
+            if (sorted_range_empty)
             {
-                if (sorted_range_empty)
-                {
-                    this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
-                } else
-                {
-                    assert(!sorted_minimizer_stack.empty());
-                    this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
-                    sorted_minimizer_stack.pop_back();
-                }
+                this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
+                bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
+                this->diagnostics();
+
+                std::cout << "REBUILD!" << std::endl;
+                std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
+                std::cout << "BEFORE: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+                std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
+
+                recalculate_minimum();
+
+                std::cout << "AFTER: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+                return minimiser_changed;
+            }
+            else if (previous_minimiser_left_window)
+            {
+                assert(!sorted_minimizer_stack.empty());
+                this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
+                sorted_minimizer_stack.pop_back();
+
                 // if sorted range and unsorted range have same "value", prefer the unsorted one
                 // example:
                 //  sorted_minimiser:   [[2]: 18, [1]: 8, ]
@@ -125,6 +136,13 @@ struct stellar_minimiser_window
                 //  unsorted: [2147483647, !8] <- prefer this eight, as 0 left the window and in that case we always
                 //                                prefer the most right one.
                 this->minimiser_it = indexed_minimum_less_equal(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
+
+                this->diagnostics();
+
+                std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+                std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+
+                return true;
             } else
             {
                 // example:
@@ -135,6 +153,14 @@ struct stellar_minimiser_window
                 //  sorted:   [0, 0, *0, ] <- the active minimiser should not be overwritten (since minimiser didn't leave the window)
                 //  unsorted: [2147483647, !0] <- don't prefer this one
                 this->minimiser_it = indexed_minimum(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
+
+                this->diagnostics();
+
+                std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+                std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+
+                bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
+                return minimiser_changed;
             }
 
             // std::cout << "sorted_range_empty: " << (sorted_range_empty ? "true" : "false") << std::endl;
@@ -142,26 +168,7 @@ struct stellar_minimiser_window
             // std::cout << "previous_minimiser_was_in_sorted: " << (previous_minimiser_was_in_sorted ? "true" : "false") << std::endl;
             // assert(!sorted_range_empty || !previous_minimiser_was_in_sorted);
         }
-        this->diagnostics();
 
-        bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
-        std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
-        std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
-
-        if (sorted_range_empty)
-        {
-            std::cout << "REBUILD!" << std::endl;
-            std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
-
-            recalculate_minimum();
-
-            this->diagnostics();
-            std::cout << "AFTER: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
-            std::cout << "AFTER: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
-            std::cout << "AFTER: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
-        }
-
-        return minimiser_changed;
     }
 
 protected:
