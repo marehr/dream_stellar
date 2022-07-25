@@ -343,8 +343,11 @@ protected:
         basic_ptr & operator=(basic_ptr &&) = default;
         basic_ptr & operator=(basic_ptr const &) = default;
     public:
-        basic_ptr(value_type * ptr, stellar_minimiser_window * host_ptr)
-            : ptr{ptr}, host_ptr{host_ptr}
+        basic_ptr(value_type * ptr, [[maybe_unused]] stellar_minimiser_window const * host_ptr) :
+            ptr{ptr}
+#ifndef NDEBUG
+            , host_ptr{host_ptr}
+#endif // NDEBUG
         {
             _assert_bounds();
         }
@@ -354,8 +357,8 @@ protected:
 
         void operator++() { ++ptr; _assert_bounds(); }
         void operator--() { --ptr; _assert_bounds(); }
-        derived_t operator-(std::ptrdiff_t d) { return {ptr - d, host_ptr}; }
-        derived_t operator+(std::ptrdiff_t d) { return {ptr + d, host_ptr}; }
+        derived_t operator-(std::ptrdiff_t d) { return {ptr - d, _host_ptr()}; }
+        derived_t operator+(std::ptrdiff_t d) { return {ptr + d, _host_ptr()}; }
 
         friend auto operator-(derived_t const & ptr1, derived_t const & ptr2)
         {
@@ -370,6 +373,14 @@ protected:
         friend bool operator<(derived_t const & ptr1, derived_t const & ptr2)
         {
             return ptr1.ptr < ptr2.ptr;
+        }
+
+        stellar_minimiser_window const * _host_ptr() const
+        {
+#ifndef NDEBUG
+            return host_ptr;
+#endif // NDEBUG
+            return nullptr;
         }
 
         std::ptrdiff_t _debug_position() const
@@ -446,13 +457,15 @@ protected:
 
         value_type * ptr;
 
-        stellar_minimiser_window * host_ptr;
+#ifndef NDEBUG
+        stellar_minimiser_window const * host_ptr{nullptr};
+#endif // NDEBUG
     };
 
     struct sorted_ptr : public basic_ptr<sorted_ptr>
     {
         sorted_ptr() = default;
-        sorted_ptr(value_type * ptr, stellar_minimiser_window * host_ptr)
+        sorted_ptr(value_type * ptr, stellar_minimiser_window const * host_ptr)
             : basic_ptr<sorted_ptr>{ptr, host_ptr}
         {}
     };
@@ -460,7 +473,7 @@ protected:
     struct unsorted_ptr : public basic_ptr<unsorted_ptr>
     {
         unsorted_ptr() = default;
-        unsorted_ptr(value_type * ptr, stellar_minimiser_window * host_ptr)
+        unsorted_ptr(value_type * ptr, stellar_minimiser_window const * host_ptr)
             : basic_ptr<unsorted_ptr>{ptr, host_ptr}
         {}
     };
@@ -468,25 +481,25 @@ protected:
     struct mixed_ptr : public basic_ptr<mixed_ptr>
     {
         mixed_ptr() = default;
-        mixed_ptr(value_type * ptr, stellar_minimiser_window * host_ptr)
+        mixed_ptr(value_type * ptr, stellar_minimiser_window const * host_ptr)
             : basic_ptr<mixed_ptr>{ptr, host_ptr}
         {}
 
         explicit mixed_ptr(sorted_ptr ptr)
-            : basic_ptr<mixed_ptr>{ptr.ptr, ptr.host_ptr}
+            : basic_ptr<mixed_ptr>{ptr.ptr, ptr._host_ptr()}
         {}
         explicit mixed_ptr(unsorted_ptr ptr)
-            : basic_ptr<mixed_ptr>{ptr.ptr, ptr.host_ptr}
+            : basic_ptr<mixed_ptr>{ptr.ptr, ptr._host_ptr()}
         {}
 
         explicit operator sorted_ptr() const
         {
-            return sorted_ptr{this->ptr, this->host_ptr};
+            return sorted_ptr{this->ptr, this->_host_ptr()};
         }
 
         explicit operator unsorted_ptr() const
         {
-            return unsorted_ptr{this->ptr, this->host_ptr};
+            return unsorted_ptr{this->ptr, this->_host_ptr()};
         }
     };
 
