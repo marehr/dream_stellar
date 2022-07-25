@@ -36,19 +36,17 @@ struct stellar_minimiser_window
         size_t const size = input_sentinel - input_iterator;
         size_t const window_size = std::min<size_t>(this->window_size, size);
         assert(window_size > 0u);
-
-        this->sorted_begin = {_valid_sorted_data().second, this};
-        this->sorted_end = this->sorted_begin;
-
         iterator_t new_input_sentinel = input_iterator + window_size;
+
+        this->sorted_begin = {_valid_sorted_data().first, this};
+        this->sorted_end = {std::copy(input_iterator, new_input_sentinel, this->sorted_begin.ptr), this};
+
         this->unsorted_begin = {_valid_unsorted_data().first, this};
-        this->unsorted_end = {std::copy(input_iterator, new_input_sentinel, this->unsorted_begin.ptr), this};
-        // TODO: do this copy only once
+        this->unsorted_end = this->unsorted_begin;
 
         unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
         *unsorted_infinity_it = std::numeric_limits<value_type>::max();
 
-        // This will copy all values from unsorted to sorted [unsorted_begin, unsorted_end)
         this->unsorted_minimiser_it = this->unsorted_begin;
 
         std::cout << "INIT!" << std::endl;
@@ -231,14 +229,10 @@ protected:
         unsorted_ptr unsorted_sentinel = this->unsorted_begin;
 
         sorted_ptr sorted_it = this->sorted_end;
-        sorted_ptr sorted_sentinel = this->sorted_end - (this->unsorted_end - this->unsorted_begin);
 
         // This is will be in the sorted memory region
         unsorted_ptr current_minimiser_unsorted_it = this->unsorted_minimiser_it; // TODO rename to current_minimiser_unsorted_it
         sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_minimiser_unsorted_it - window_size - 1);
-
-        // unsorted is non-empty
-        assert(unsorted_it != unsorted_sentinel);
 
         // update pointer to be e in memory layout
         // S: sorted_it
@@ -256,13 +250,37 @@ protected:
         std::cout << "minimiser_it: M[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
         std::cout << "PRE_MINIMISER" << std::endl;
 
+        if (!in_initialization)
         {
+            // unsorted is non-empty
+            assert(unsorted_it != unsorted_sentinel);
+
+            // in_initialization == true: Elements where already copied into sorted area
             // TODO: transform this into a std::copy
             // diff = current_minimiser_unsorted_it.ptr - this->unsorted_begin.ptr
             // this->sorted_begin.ptr + diff
             // TODO: is that not the same as current_minimiser_sorted_it ?!
             // std::copy_backward(current_minimiser_unsorted_it.ptr, this->unsorted_end.ptr, this->sorted_end.ptr);
-            std::copy(current_minimiser_unsorted_it.ptr, this->unsorted_end.ptr, current_minimiser_sorted_it.ptr);
+            sorted_ptr sorted_begin{_valid_sorted_data().first, this};
+            // there are exactly "window_size" many elements in the unsorted list.
+            // Note: Actually there can be less elements in sorted, if the initial range is to small, but this can only
+            // happen if in_initialization == true.
+            //
+            // in_initialization == false means that we trigger a rebuild by cyclic_push and that means that enough
+            // initial elements where in the queue.
+            assert(this->unsorted_end - this->unsorted_begin == window_size);
+            assert(sorted_begin == this->sorted_end - (this->unsorted_end - this->unsorted_begin));
+            sorted_ptr sorted_end
+            {
+                std::copy(current_minimiser_unsorted_it.ptr, this->unsorted_end.ptr, current_minimiser_sorted_it.ptr),
+                this
+            };
+            assert(this->sorted_end == sorted_end);
+
+            // update pointer
+            // this->sorted_begin = sorted_it; // sorted region is now non-empty
+            this->sorted_begin = sorted_begin; // sorted region is now non-empty
+            this->unsorted_end = this->unsorted_begin; // unsorted region is now empty
         }
 
         for (; sorted_it != current_minimiser_sorted_it; )
@@ -319,11 +337,6 @@ protected:
         //     //   S                             UM, UE|U,                          ] (pointer)
         //     // [ uM, uM, ..., uM, vM+1..., vW, uW, u1,   u2, ..., uM, uM+1 ..., uW] (new memory)
         // }
-
-        // update pointer
-        // this->sorted_begin = sorted_it; // sorted region is now non-empty
-        this->sorted_begin = sorted_sentinel; // sorted region is now non-empty
-        this->unsorted_end = this->unsorted_begin; // unsorted region is now empty
     }
 
     struct sorted_ptr;
