@@ -72,18 +72,16 @@ struct stellar_minimiser_window
      */
     bool cyclic_push(value_type const new_value)
     {
-        unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
-
         std::cout << "~~~~~~~~~~~~~~~~~~~" << std::endl;
         std::cout << "cyclic_push(" << new_value << "):" << std::endl;
         ++this->sorted_begin;
-        bool sorted_range_empty = this->sorted_begin == this->sorted_end;
-
         mixed_ptr previous_minimiser_it = this->minimiser_it;
 
-        // append new element to unsorted list and update minimiser of the unsorted list
+        bool const sorted_range_empty = this->sorted_begin == this->sorted_end;
         bool const previous_minimiser_left_window = previous_minimiser_it < (mixed_ptr)this->sorted_begin;
         bool const previous_minimiser_was_in_sorted = previous_minimiser_it < (mixed_ptr)this->sorted_end;
+
+        // append new element to unsorted list and update minimiser of the unsorted list
         *this->unsorted_end = new_value;
         if (!previous_minimiser_was_in_sorted)
         {
@@ -106,6 +104,8 @@ struct stellar_minimiser_window
         if (sorted_range_empty)
         {
             this->minimiser_it = (mixed_ptr)this->unsorted_minimiser_it;
+             // note: the minimiser can also not change, as unsorted_minimiser_it could have stayed the same, but will
+             // be selected as overall minimiser, since no minimiser in sorted are left.
             bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
             this->diagnostics();
 
