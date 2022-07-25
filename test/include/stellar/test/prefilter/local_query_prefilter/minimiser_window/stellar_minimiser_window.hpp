@@ -37,11 +37,11 @@ struct stellar_minimiser_window
         size_t const window_size = std::min<size_t>(this->window_size, size);
         assert(window_size > 0u);
 
-        this->sorted_begin = {window_values.data(), this};
-        this->sorted_end = this->sorted_begin + this->window_size;
+        this->sorted_begin = {_valid_sorted_data().second, this};
+        this->sorted_end = this->sorted_begin;
 
         iterator_t new_input_sentinel = input_iterator + window_size;
-        this->unsorted_begin = {this->sorted_end.ptr + 1, this};
+        this->unsorted_begin = {_valid_unsorted_data().first, this};
         this->unsorted_end = {std::copy(input_iterator, new_input_sentinel, this->unsorted_begin.ptr), this};
 
         unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
@@ -57,7 +57,7 @@ struct stellar_minimiser_window
         this->unsorted_minimiser_it = unsorted_infinity_it;
 
         std::cout << "INIT!" << std::endl;
-        recalculate_minimum();
+        recalculate_minimum(true);
 
         this->diagnostics();
 
@@ -114,7 +114,7 @@ struct stellar_minimiser_window
             std::cout << "BEFORE: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
             std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
 
-            recalculate_minimum();
+            recalculate_minimum(false);
 
             std::cout << "AFTER: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
             return minimiser_changed;
@@ -225,7 +225,7 @@ protected:
     // Note recalculate_minimum will do:
     // In range (sorted_end, minimiser_it] recompute minimiser backwards (old minimiser would have left window)
     // In range (minimiser_it, sorted_begin] set old minimiser value as it is still active in that range
-    void recalculate_minimum()
+    void recalculate_minimum(bool in_initialization)
     {
         // assert(sorted_minimizer_stack.empty());
         sorted_minimizer_stack.clear(); // TODO: should already be done
@@ -238,7 +238,7 @@ protected:
         unsorted_ptr unsorted_sentinel = this->unsorted_begin;
 
         // This is will be in the sorted memory region
-        bool in_initialization = this->unsorted_minimiser_it == unsorted_infinity_it;
+        assert(!in_initialization || this->unsorted_minimiser_it == unsorted_infinity_it);
         unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it + (in_initialization ? 1 : 0);
 
         // unsorted is non-empty
