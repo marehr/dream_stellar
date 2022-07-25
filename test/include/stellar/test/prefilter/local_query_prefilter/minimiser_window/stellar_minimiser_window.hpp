@@ -6,6 +6,10 @@
 #include <vector>
 #include <stdexcept>
 
+#ifndef NDEBUG
+// #define STELLAR_MINIMISER_WINDOW_DEBUG
+#endif
+
 namespace stellar {
 namespace test {
 
@@ -53,7 +57,9 @@ public:
         *unsorted_infinity() = std::numeric_limits<value_type>::max();
         this->unsorted_minimiser_it = unsorted_infinity();
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "INIT!" << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
         recalculate_minimum(true);
 
         this->diagnostics();
@@ -69,8 +75,10 @@ public:
      */
     bool cyclic_push(value_type const new_value)
     {
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "~~~~~~~~~~~~~~~~~~~" << std::endl;
         std::cout << "cyclic_push(" << new_value << "):" << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
         ++this->sorted_begin;
         mixed_ptr previous_minimiser_it = this->minimiser_it;
 
@@ -105,11 +113,13 @@ public:
              // be selected as overall minimiser, since no minimiser in sorted are left.
             bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
             this->diagnostics();
             std::cout << "REBUILD!" << std::endl;
             std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
             std::cout << "BEFORE: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
             std::cout << "BEFORE: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
             recalculate_minimum(false);
 
@@ -134,9 +144,11 @@ public:
             //                                prefer the most right one.
             this->minimiser_it = indexed_minimum_less_equal(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
             this->diagnostics();
             std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
             std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
             return true;
         } else
@@ -150,9 +162,11 @@ public:
             //  unsorted: [2147483647, !0] <- don't prefer this one
             this->minimiser_it = indexed_minimum(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
             this->diagnostics();
             std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
             std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
             bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
             return minimiser_changed;
@@ -180,7 +194,7 @@ protected:
 
     void diagnostics()
     {
-#ifndef NDEBUG
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "stellar_minimiser_window:" << std::endl;
         std::cout << "\tsorted_minimiser:   [";
         bool minimizer_seen = false;
@@ -208,7 +222,7 @@ protected:
 
         assert(minimizer_seen);
         assert(unsorted_minimizer_seen);
-#endif // NDEBUG
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
     }
 
     template <typename ptr_t>
@@ -238,7 +252,9 @@ protected:
             this->sorted_begin :
             (sorted_ptr)((mixed_ptr)this->unsorted_minimiser_it - window_size - 1);
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "PRE_MINIMISER" << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
         // copy unsorted elements into sorted elements
         if (!in_initialization)
@@ -280,10 +296,12 @@ protected:
                 --sorted_it;
                 sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(minimiser_it, (mixed_ptr)sorted_it);
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
                 std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << std::endl;
                 std::cout << "new_minimiser_it: S[" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
                 if ((mixed_ptr)new_minimiser_it != minimiser_it)
                     std::cout << "minimiser changed" << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
                 if ((mixed_ptr)new_minimiser_it != minimiser_it)
                     sorted_minimizer_stack.push_back(new_minimiser_it);
@@ -307,9 +325,10 @@ protected:
             sorted_minimizer_stack.pop_back();
         }
 
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "this->minimiser_it: S[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
-
         std::cout << "POST_MINIMISER" << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
     }
 
     template <typename derived_t>
@@ -375,7 +394,7 @@ protected:
 
         void _assert_bounds(bool const dereferencable = false) const
         {
-#ifndef NDEBUG
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
             auto in_range = [](value_type * ptr, value_type * begin, value_type * end)
             {
                 return begin <= ptr && ptr <= end;
@@ -422,7 +441,7 @@ protected:
             }
 
             // std::cout << std::endl;
-#endif // NDEBUG
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
         }
 
         value_type * ptr;
