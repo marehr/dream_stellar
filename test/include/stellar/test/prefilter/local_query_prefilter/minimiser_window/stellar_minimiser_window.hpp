@@ -265,12 +265,12 @@ protected:
             std::copy(current_minimiser_unsorted_it.ptr, this->unsorted_end.ptr, current_minimiser_sorted_it.ptr);
         }
 
-        for (; unsorted_it != current_minimiser_unsorted_it; )
+        for (; sorted_it != current_minimiser_sorted_it; )
         {
-            --unsorted_it;
+            // --unsorted_it;
             --sorted_it;
-            std::cout << "U[" << unsorted_it._debug_position() << "/" << current_minimiser_unsorted_it._debug_position() << "]: " << *unsorted_it << std::endl;
-            std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *unsorted_it << std::endl;
+            // std::cout << "U[" << unsorted_it._debug_position() << "/" << current_minimiser_unsorted_it._debug_position() << "]: " << *unsorted_it << std::endl;
+            std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << std::endl;
             sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
             std::cout << "new_minimiser_it: S[" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
             if ((mixed_ptr)new_minimiser_it != this->minimiser_it)
