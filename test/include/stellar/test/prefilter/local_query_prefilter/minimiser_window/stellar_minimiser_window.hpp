@@ -45,15 +45,7 @@ struct stellar_minimiser_window
         this->unsorted_end = {std::copy(input_iterator, new_input_sentinel, this->unsorted_begin.ptr), this};
 
         unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
-
-        // initial minimiser is the first element in the sorted range
-        //
-        // Note recalculate_minimum will do:
-        // In range (sorted_end, minimiser_it] recompute minimiser backwards (old minimiser would have left window)
-        // In range (minimiser_it, sorted_begin] set old minimiser value as it is still active in that range
-        //
-        // Setting minimiser_it = sorted_begin makes the second range empty.
-        this->minimiser_it = (mixed_ptr)(this->sorted_end - 1);
+        *unsorted_infinity_it = std::numeric_limits<value_type>::max();
         this->unsorted_minimiser_it = unsorted_infinity_it;
 
         std::cout << "INIT!" << std::endl;
@@ -255,7 +247,6 @@ protected:
         this->unsorted_minimiser_it = unsorted_infinity_it; // same as sorted_it
         this->minimiser_it = mixed_ptr{unsorted_infinity_it};
         // [ s1, s2, ..sM.., sW, uW  , u1, u2, ..uM.., uW] (new memory)
-        *this->unsorted_minimiser_it = std::numeric_limits<value_type>::max();
 
         // construct minimiser from last to "first" element
         std::cout << "minimiser_it: M[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
