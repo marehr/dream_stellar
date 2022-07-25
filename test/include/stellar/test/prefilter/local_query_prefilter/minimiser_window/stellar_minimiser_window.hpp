@@ -43,6 +43,7 @@ struct stellar_minimiser_window
         iterator_t new_input_sentinel = input_iterator + window_size;
         this->unsorted_begin = {_valid_unsorted_data().first, this};
         this->unsorted_end = {std::copy(input_iterator, new_input_sentinel, this->unsorted_begin.ptr), this};
+        // TODO: do this copy only once
 
         unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
         *unsorted_infinity_it = std::numeric_limits<value_type>::max();
@@ -255,15 +256,11 @@ protected:
         std::cout << "PRE_MINIMISER" << std::endl;
 
         {
-            // TODO: use std::copy
-            auto source_it = unsorted_it;
-            auto target_it = sorted_it;
-            for (; source_it != current_minimiser_it;)
-            {
-                --source_it;
-                --target_it;
-                *target_it = *source_it;
-            }
+            // TODO: transform this into a std::copy
+            // diff = current_minimiser_it.ptr - this->unsorted_begin.ptr
+            // this->sorted_begin.ptr + diff
+            // TODO: is that not the same as current_minimiser_sorted_it ?!
+            std::copy_backward(current_minimiser_it.ptr, this->unsorted_end.ptr, this->sorted_end.ptr);
         }
 
         for (; unsorted_it != current_minimiser_it; )
