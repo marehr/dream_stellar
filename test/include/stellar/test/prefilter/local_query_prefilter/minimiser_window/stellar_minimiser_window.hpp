@@ -261,7 +261,8 @@ protected:
             // diff = current_unsorted_minimiser_it.ptr - this->unsorted_begin.ptr
             // this->sorted_begin.ptr + diff
             // TODO: is that not the same as current_minimiser_sorted_it ?!
-            std::copy_backward(current_unsorted_minimiser_it.ptr, this->unsorted_end.ptr, this->sorted_end.ptr);
+            // std::copy_backward(current_unsorted_minimiser_it.ptr, this->unsorted_end.ptr, this->sorted_end.ptr);
+            std::copy(current_unsorted_minimiser_it.ptr, this->unsorted_end.ptr, current_minimiser_sorted_it.ptr);
         }
 
         for (; unsorted_it != current_unsorted_minimiser_it; )
