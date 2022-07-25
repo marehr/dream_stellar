@@ -261,22 +261,24 @@ protected:
         // prepare computing minimiser
         unsorted_ptr const unsorted_infinity_it = this->unsorted_begin - 1;
         this->unsorted_minimiser_it = unsorted_infinity_it;
-        this->minimiser_it = mixed_ptr{unsorted_infinity_it};
 
         // construct minimiser from last to "first" element
+        mixed_ptr minimiser_it = mixed_ptr{unsorted_infinity_it};
+        assert(current_minimiser_sorted_it != this->sorted_end); // range is not empty
         for (sorted_ptr sorted_it = this->sorted_end; sorted_it != current_minimiser_sorted_it; )
         {
             --sorted_it;
-            sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
+            sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(minimiser_it, (mixed_ptr)sorted_it);
 
             std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << std::endl;
             std::cout << "new_minimiser_it: S[" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
-            if ((mixed_ptr)new_minimiser_it != this->minimiser_it)
+            if ((mixed_ptr)new_minimiser_it != minimiser_it)
                 std::cout << "minimiser changed" << std::endl;
 
-            if ((mixed_ptr)new_minimiser_it != this->minimiser_it)
+            if ((mixed_ptr)new_minimiser_it != minimiser_it)
                 sorted_minimizer_stack.push_back(new_minimiser_it);
-            this->minimiser_it = (mixed_ptr)new_minimiser_it;
+
+            minimiser_it = (mixed_ptr)new_minimiser_it;
         }
 
         // The old minimiser must be re-added if it is different from recomputed one.
@@ -288,7 +290,7 @@ protected:
         // after:
         //    sorted: [5, 3, 4, 3, 3, *3] <- overall minimizer is the rightest one
         //    sorted: [5, *3, 4, 3, 3, *3] <- but as the old minimiser didn't leave the window yet, we can't ignore it
-        if (!in_initialization && (mixed_ptr)current_minimiser_sorted_it != this->minimiser_it)
+        if (!in_initialization && (mixed_ptr)current_minimiser_sorted_it != minimiser_it)
             sorted_minimizer_stack.push_back(current_minimiser_sorted_it);
 
         this->minimiser_it = (mixed_ptr)sorted_minimizer_stack.back();
