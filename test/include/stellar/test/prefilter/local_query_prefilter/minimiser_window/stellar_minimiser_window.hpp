@@ -12,6 +12,12 @@ namespace test {
 template <typename value_type>
 struct stellar_minimiser_window
 {
+protected:
+    struct sorted_ptr;
+    struct unsorted_ptr;
+    struct mixed_ptr;
+
+public:
     // Memory Layout
     // s1, s2, ..., sW: sorted elements
     // e*: one element between sorted and unsorted
@@ -44,8 +50,7 @@ struct stellar_minimiser_window
         this->unsorted_begin = {_valid_unsorted_data().first, this};
         this->unsorted_end = this->unsorted_begin;
 
-        unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
-        *unsorted_infinity_it = std::numeric_limits<value_type>::max();
+        *unsorted_infinity() = std::numeric_limits<value_type>::max();
 
         this->unsorted_minimiser_it = this->unsorted_begin;
 
@@ -160,6 +165,11 @@ struct stellar_minimiser_window
 
 protected:
 
+    unsorted_ptr unsorted_infinity()
+    {
+        return {_valid_unsorted_data().first - 1, this};
+    }
+
     std::pair<value_type *, value_type *> _valid_sorted_data()
     {
         value_type * sorted_begin = this->window_values.data();
@@ -259,11 +269,10 @@ protected:
         }
 
         // prepare computing minimiser
-        unsorted_ptr const unsorted_infinity_it = this->unsorted_begin - 1;
-        this->unsorted_minimiser_it = unsorted_infinity_it;
+        this->unsorted_minimiser_it = unsorted_infinity();
 
         // construct minimiser from last to "first" element
-        mixed_ptr minimiser_it = mixed_ptr{unsorted_infinity_it};
+        mixed_ptr minimiser_it = mixed_ptr{unsorted_infinity()};
         assert(current_minimiser_sorted_it != this->sorted_end); // range is not empty
         for (sorted_ptr sorted_it = this->sorted_end; sorted_it != current_minimiser_sorted_it; )
         {
@@ -300,9 +309,6 @@ protected:
 
         std::cout << "POST_MINIMISER" << std::endl;
     }
-
-    struct sorted_ptr;
-    struct unsorted_ptr;
 
     template <typename derived_t>
     struct basic_ptr
