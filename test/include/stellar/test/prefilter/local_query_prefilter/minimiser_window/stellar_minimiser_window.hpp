@@ -104,16 +104,15 @@ public:
              // note: the minimiser can also not change, as unsorted_minimiser_it could have stayed the same, but will
              // be selected as overall minimiser, since no minimiser in sorted are left.
             bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
-            this->diagnostics();
 
+            this->diagnostics();
             std::cout << "REBUILD!" << std::endl;
             std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
             std::cout << "BEFORE: this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
-            std::cout << "BEFORE: this->unsorted_minimiser_it: " << mixed_ptr{this->unsorted_minimiser_it}._debug_position() << std::endl;
+            std::cout << "BEFORE: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
 
             recalculate_minimum(false);
 
-            std::cout << "AFTER: previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
             return minimiser_changed;
         }
         else if (previous_minimiser_left_window)
@@ -136,7 +135,6 @@ public:
             this->minimiser_it = indexed_minimum_less_equal(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
 
             this->diagnostics();
-
             std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
             std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
 
@@ -153,7 +151,6 @@ public:
             this->minimiser_it = indexed_minimum(this->minimiser_it, (mixed_ptr)this->unsorted_minimiser_it);
 
             this->diagnostics();
-
             std::cout << "previous_minimiser_it: " << previous_minimiser_it._debug_position() << std::endl;
             std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
 
