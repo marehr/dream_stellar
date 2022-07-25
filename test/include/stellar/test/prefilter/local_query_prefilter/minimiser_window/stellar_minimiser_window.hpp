@@ -234,7 +234,7 @@ protected:
         sorted_ptr sorted_sentinel = this->sorted_end - (this->unsorted_end - this->unsorted_begin);
 
         // This is will be in the sorted memory region
-        unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it;
+        unsorted_ptr current_unsorted_minimiser_it = this->unsorted_minimiser_it; // TODO rename to current_unsorted_minimiser_it
 
         // unsorted is non-empty
         assert(unsorted_it != unsorted_sentinel);
@@ -257,17 +257,17 @@ protected:
 
         {
             // TODO: transform this into a std::copy
-            // diff = current_minimiser_it.ptr - this->unsorted_begin.ptr
+            // diff = current_unsorted_minimiser_it.ptr - this->unsorted_begin.ptr
             // this->sorted_begin.ptr + diff
             // TODO: is that not the same as current_minimiser_sorted_it ?!
-            std::copy_backward(current_minimiser_it.ptr, this->unsorted_end.ptr, this->sorted_end.ptr);
+            std::copy_backward(current_unsorted_minimiser_it.ptr, this->unsorted_end.ptr, this->sorted_end.ptr);
         }
 
-        for (; unsorted_it != current_minimiser_it; )
+        for (; unsorted_it != current_unsorted_minimiser_it; )
         {
             --unsorted_it;
             --sorted_it;
-            std::cout << "U[" << unsorted_it._debug_position() << "/" << current_minimiser_it._debug_position() << "]: " << *unsorted_it << std::endl;
+            std::cout << "U[" << unsorted_it._debug_position() << "/" << current_unsorted_minimiser_it._debug_position() << "]: " << *unsorted_it << std::endl;
             std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *unsorted_it << std::endl;
             sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
             std::cout << "new_minimiser_it: S[" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
@@ -287,10 +287,10 @@ protected:
         }
 
         std::cout << "sorted_it: S[" << sorted_it._debug_position() << "]: " << *sorted_it << std::endl;
-        std::cout << "current_minimiser_it: U[" << current_minimiser_it._debug_position() << "]: " << *current_minimiser_it << std::endl;
+        std::cout << "current_unsorted_minimiser_it: U[" << current_unsorted_minimiser_it._debug_position() << "]: " << *current_unsorted_minimiser_it << std::endl;
         std::cout << "this->minimiser_it: S[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
         if (!in_initialization) {
-            sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_minimiser_it - window_size - 1);
+            sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_unsorted_minimiser_it - window_size - 1);
             if ((mixed_ptr)current_minimiser_sorted_it != this->minimiser_it)
             {
                 sorted_minimizer_stack.push_back(current_minimiser_sorted_it);
@@ -306,11 +306,11 @@ protected:
         // {
         //     --unsorted_it;
         //     --sorted_it;
-        //     // std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *current_minimiser_it << std::endl;
-        //     // *sorted_it = *current_minimiser_it;
-        //     // mixed_ptr current_minimiser_sorted_it = mixed_ptr{current_minimiser_it} - window_size - 1;
+        //     // std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *current_unsorted_minimiser_it << std::endl;
+        //     // *sorted_it = *current_unsorted_minimiser_it;
+        //     // mixed_ptr current_minimiser_sorted_it = mixed_ptr{current_unsorted_minimiser_it} - window_size - 1;
         //     // assert(indexed_minimum((sorted_ptr)this->minimiser_it, sorted_it) == (sorted_ptr)current_minimiser_sorted_it);
-        //     // this->minimiser_it = (mixed_ptr)current_minimiser_it;
+        //     // this->minimiser_it = (mixed_ptr)current_unsorted_minimiser_it;
         //
         //     // vM+1, ..., vW: minimiser vi := min(ui, ..., uW)
         //     // [ s1, s2, ..., sM, sM+1..., sW, e*, u1,   u2, ..., uM, uM+1 ..., uW] (old memory)
