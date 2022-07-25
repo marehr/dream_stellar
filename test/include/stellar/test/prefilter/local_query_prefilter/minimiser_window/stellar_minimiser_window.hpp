@@ -235,6 +235,7 @@ protected:
 
         // This is will be in the sorted memory region
         unsorted_ptr current_unsorted_minimiser_it = this->unsorted_minimiser_it; // TODO rename to current_unsorted_minimiser_it
+        sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_unsorted_minimiser_it - window_size - 1);
 
         // unsorted is non-empty
         assert(unsorted_it != unsorted_sentinel);
@@ -290,7 +291,7 @@ protected:
         std::cout << "current_unsorted_minimiser_it: U[" << current_unsorted_minimiser_it._debug_position() << "]: " << *current_unsorted_minimiser_it << std::endl;
         std::cout << "this->minimiser_it: S[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
         if (!in_initialization) {
-            sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_unsorted_minimiser_it - window_size - 1);
+            // sorted_ptr current_minimiser_sorted_it = (sorted_ptr)((mixed_ptr)current_unsorted_minimiser_it - window_size - 1);
             if ((mixed_ptr)current_minimiser_sorted_it != this->minimiser_it)
             {
                 sorted_minimizer_stack.push_back(current_minimiser_sorted_it);
