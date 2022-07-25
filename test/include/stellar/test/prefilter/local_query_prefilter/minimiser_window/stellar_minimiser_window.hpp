@@ -225,10 +225,12 @@ protected:
 
         assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
 
-        sorted_ptr sorted_it = this->sorted_end;
         unsorted_ptr unsorted_infinity_it = this->unsorted_begin - 1;
         unsorted_ptr unsorted_it = this->unsorted_end;
         unsorted_ptr unsorted_sentinel = this->unsorted_begin;
+
+        sorted_ptr sorted_it = this->sorted_end;
+        sorted_ptr sorted_sentinel = this->sorted_end - (this->unsorted_end - this->unsorted_begin);
 
         // This is will be in the sorted memory region
         unsorted_ptr current_minimiser_it = this->unsorted_minimiser_it;
@@ -251,13 +253,25 @@ protected:
         // construct minimiser from last to "first" element
         std::cout << "minimiser_it: M[" << this->minimiser_it._debug_position() << "]: " << *this->minimiser_it << std::endl;
         std::cout << "PRE_MINIMISER" << std::endl;
+
+        {
+            // TODO: use std::copy
+            auto source_it = unsorted_it;
+            auto target_it = sorted_it;
+            for (; source_it != current_minimiser_it;)
+            {
+                --source_it;
+                --target_it;
+                *target_it = *source_it;
+            }
+        }
+
         for (; unsorted_it != current_minimiser_it; )
         {
             --unsorted_it;
             --sorted_it;
             std::cout << "U[" << unsorted_it._debug_position() << "/" << current_minimiser_it._debug_position() << "]: " << *unsorted_it << std::endl;
             std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *unsorted_it << std::endl;
-            *sorted_it = *unsorted_it;
             sorted_ptr new_minimiser_it = (sorted_ptr)indexed_minimum(this->minimiser_it, (mixed_ptr)sorted_it);
             std::cout << "new_minimiser_it: S[" << new_minimiser_it._debug_position() << "]: " << *new_minimiser_it << std::endl;
             if ((mixed_ptr)new_minimiser_it != this->minimiser_it)
@@ -291,24 +305,25 @@ protected:
 
         std::cout << "POST_MINIMISER" << std::endl;
         // set old minimiser from its position until the "first" element
-        for (; unsorted_it != unsorted_sentinel; )
-        {
-            --unsorted_it;
-            --sorted_it;
-            std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *current_minimiser_it << std::endl;
-            *sorted_it = *current_minimiser_it;
-            mixed_ptr current_minimiser_sorted_it = mixed_ptr{current_minimiser_it} - window_size - 1;
-            // assert(indexed_minimum((sorted_ptr)this->minimiser_it, sorted_it) == (sorted_ptr)current_minimiser_sorted_it);
-            // this->minimiser_it = (mixed_ptr)current_minimiser_it;
-
-            // vM+1, ..., vW: minimiser vi := min(ui, ..., uW)
-            // [ s1, s2, ..., sM, sM+1..., sW, e*, u1,   u2, ..., uM, uM+1 ..., uW] (old memory)
-            //   S                             UM, UE|U,                          ] (pointer)
-            // [ uM, uM, ..., uM, vM+1..., vW, uW, u1,   u2, ..., uM, uM+1 ..., uW] (new memory)
-        }
+        // for (; unsorted_it != unsorted_sentinel; )
+        // {
+        //     --unsorted_it;
+        //     --sorted_it;
+        //     // std::cout << "S[" << sorted_it._debug_position() << "] = " << *sorted_it << " := " << *current_minimiser_it << std::endl;
+        //     // *sorted_it = *current_minimiser_it;
+        //     // mixed_ptr current_minimiser_sorted_it = mixed_ptr{current_minimiser_it} - window_size - 1;
+        //     // assert(indexed_minimum((sorted_ptr)this->minimiser_it, sorted_it) == (sorted_ptr)current_minimiser_sorted_it);
+        //     // this->minimiser_it = (mixed_ptr)current_minimiser_it;
+        //
+        //     // vM+1, ..., vW: minimiser vi := min(ui, ..., uW)
+        //     // [ s1, s2, ..., sM, sM+1..., sW, e*, u1,   u2, ..., uM, uM+1 ..., uW] (old memory)
+        //     //   S                             UM, UE|U,                          ] (pointer)
+        //     // [ uM, uM, ..., uM, vM+1..., vW, uW, u1,   u2, ..., uM, uM+1 ..., uW] (new memory)
+        // }
 
         // update pointer
-        this->sorted_begin = sorted_it; // sorted region is now non-empty
+        // this->sorted_begin = sorted_it; // sorted region is now non-empty
+        this->sorted_begin = sorted_sentinel; // sorted region is now non-empty
         this->unsorted_end = this->unsorted_begin; // unsorted region is now empty
     }
 
