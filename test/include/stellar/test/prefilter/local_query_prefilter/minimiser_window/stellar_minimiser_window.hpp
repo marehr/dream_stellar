@@ -255,7 +255,9 @@ protected:
     template <typename ptr_t>
     static constexpr ptr_t indexed_minimum(ptr_t const old_it, ptr_t const new_it)
     {
-        return *new_it < *old_it ? new_it : old_it;
+        value_type & new_value = *new_it;
+        value_type & old_value = *old_it;
+        return new_value < old_value ? new_it : old_it;
     }
 
     template <typename ptr_t>
