@@ -13,7 +13,7 @@
 namespace stellar {
 namespace test {
 
-template <typename value_type>
+template <typename value_type, bool swap_data_instead_of_copying = false>
 struct stellar_minimiser_window
 {
 protected:
@@ -77,11 +77,41 @@ public:
     {
         auto left_window = [this](mixed_ptr minimiser)
         {
-            return minimiser < (mixed_ptr)this->sorted_begin;
+            if constexpr (swap_data_instead_of_copying == false)
+            {
+                return minimiser < (mixed_ptr)this->sorted_begin;
+            } else
+            {
+                bool const unswapped_data = !this->swap_data || swap_data_instead_of_copying == false;
+                if (unswapped_data)
+                    // [S1,S2,...,M,SB,...,SW,INF,U1,U2,...,UW] // left window
+                    // [S1,S2,...,SB,...,M,...,SW,INF,U1,U2,...,UW] // did not leave window, yet
+                    // [S1,S2,...,SW,INF,U1,U2,...,M,...,UW] // can't leave window
+                    return minimiser + 1 == (mixed_ptr)this->sorted_begin;
+                else
+                    // [U1,U2,...,M,...,UW,INF,S1,S2,...,SW] // can't leave window
+                    // [U1,U2,...,UW,INF,S1,S2,...,M,SB,...,SW] // left window
+                    // [U1,U2,...,UW,INF,S1,S2,...,SB,...,M,...,SW] // did not leave window, yet
+                    return minimiser + 1 == (mixed_ptr)this->sorted_begin;
+            }
         };
         auto in_sorted = [this](mixed_ptr minimiser)
         {
-            return minimiser < (mixed_ptr)this->sorted_end;
+            if constexpr (swap_data_instead_of_copying == false)
+            {
+                return minimiser < (mixed_ptr)this->sorted_end;
+            } else
+            {
+                bool const unswapped_data = !this->swap_data || swap_data_instead_of_copying == false;
+                if (unswapped_data)
+                {
+                    // [S1,S2,...M,...,SW,INF,U1,U2,...,UW]
+                    return minimiser < (mixed_ptr)unsorted_infinity();
+                } else {
+                    // [U1,U2,...,UW,INF,S1,S2,...M,...,SW]
+                    return minimiser > (mixed_ptr)unsorted_infinity();
+                }
+            }
         };
 #ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "~~~~~~~~~~~~~~~~~~~" << std::endl;
@@ -196,7 +226,13 @@ protected:
     std::pair<value_type *, value_type *> _valid_sorted_data()
     {
         value_type * sorted_begin = this->window_values.data();
-        return {sorted_begin, sorted_begin + window_size};
+        value_type * unsorted_begin = this->window_values.data() + 1 + window_size;
+
+        bool const unswapped_data = !this->swap_data || swap_data_instead_of_copying == false;
+        if (unswapped_data)
+            return {sorted_begin, sorted_begin + window_size};
+        else
+            return {unsorted_begin, unsorted_begin + window_size};
     }
 
     std::pair<value_type const *, value_type const *> _valid_sorted_data() const
@@ -207,8 +243,14 @@ protected:
 
     std::pair<value_type *, value_type *> _valid_unsorted_data()
     {
+        value_type * sorted_begin = this->window_values.data();
         value_type * unsorted_begin = this->window_values.data() + 1 + window_size;
-        return {unsorted_begin, unsorted_begin + window_size};
+
+        bool const unswapped_data = !this->swap_data || swap_data_instead_of_copying == false;
+        if (unswapped_data)
+            return {unsorted_begin, unsorted_begin + window_size};
+        else
+            return {sorted_begin, sorted_begin + window_size};
     }
 
     std::pair<value_type const *, value_type const *> _valid_unsorted_data() const
@@ -273,17 +315,15 @@ protected:
     {
         sorted_minimizer_stack.clear();
 
-        assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
+        // assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
 
-        // unsorted_ptr const current_minimiser_unsorted_it = this->unsorted_minimiser_it;
-        // std::ptrdiff_t minimiser_position = this->unsorted_minimiser_it - this->unsorted_begin;
         sorted_ptr current_minimiser_sorted_it;
 
 #ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "PRE_MINIMISER" << std::endl;
 #endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
-        if (true)
+        if (swap_data_instead_of_copying == false)
         {
             current_minimiser_sorted_it =
                in_initialization ?
@@ -292,7 +332,7 @@ protected:
         }
 
         // copy unsorted elements into sorted elements
-        if (!in_initialization)
+        if (!in_initialization && swap_data_instead_of_copying == false)
         {
             // unsorted is non-empty
             assert(this->unsorted_begin != this->unsorted_end);
@@ -320,6 +360,35 @@ protected:
             this->sorted_begin = sorted_begin; // sorted region is now non-empty
             this->unsorted_end = this->unsorted_begin; // unsorted region is now empty
             this->unsorted_minimiser_it = unsorted_infinity();
+        }
+
+        if (swap_data_instead_of_copying == true)
+        {
+            std::ptrdiff_t minimiser_position = this->unsorted_minimiser_it - this->unsorted_begin;
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
+            std::cout << "this->unsorted_minimiser_it: U[" << this->unsorted_minimiser_it._debug_position() << "]: " << *this->unsorted_minimiser_it << std::endl;
+            std::cout << "this->unsorted_begin: U[" << this->unsorted_begin._debug_position() << "]: " << std::endl;
+            std::cout << "this->unsorted_end: U[" << this->unsorted_end._debug_position() << "]: " << std::endl;
+            std::cout << "this->sorted_begin: S[" << this->sorted_begin._debug_position() << "]: " << std::endl;
+            std::cout << "this->sorted_end: S[" << this->sorted_end._debug_position() << "]: " << std::endl;
+            std::cout << "minimiser_position: " << minimiser_position << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
+
+            if (!in_initialization)
+                swap_sorted_unsorted_regions();
+
+            this->unsorted_begin = unsorted_ptr{_valid_unsorted_data().first, this};
+            this->unsorted_end = this->unsorted_begin; // unsorted region is now empty
+            this->sorted_begin = sorted_ptr{_valid_sorted_data().first, this};
+            this->unsorted_minimiser_it = unsorted_infinity();
+
+#ifdef STELLAR_MINIMISER_WINDOW_DEBUG
+            std::cout << "this->unsorted_begin: U[" << this->unsorted_begin._debug_position() << "]: " << std::endl;
+            std::cout << "this->unsorted_end: U[" << this->unsorted_end._debug_position() << "]: " << std::endl;
+            std::cout << "this->sorted_begin: S[" << this->sorted_begin._debug_position() << "]: " << std::endl;
+            std::cout << "this->sorted_end: S[" << this->sorted_end._debug_position() << "]: " << std::endl;
+#endif // STELLAR_MINIMISER_WINDOW_DEBUG
+            current_minimiser_sorted_it = this->sorted_begin + (in_initialization ? 0 : minimiser_position);
         }
 
         // construct minimiser from last to "first" element
@@ -534,6 +603,23 @@ protected:
         }
     };
 
+    void swap_sorted_unsorted_regions()
+    {
+        if (swap_data_instead_of_copying)
+        {
+            swap_data = !swap_data;
+            mixed_ptr unsorted_begin = (mixed_ptr)this->sorted_begin;
+            mixed_ptr unsorted_end = (mixed_ptr)this->sorted_end;
+            mixed_ptr sorted_begin = (mixed_ptr)this->unsorted_begin;
+            mixed_ptr sorted_end = (mixed_ptr)this->unsorted_end;
+
+            this->sorted_begin = (sorted_ptr)sorted_begin;
+            this->sorted_end = (sorted_ptr)sorted_end;
+            this->unsorted_begin = (unsorted_ptr)unsorted_begin;
+            this->unsorted_end = (unsorted_ptr)unsorted_end;
+        }
+    }
+
     mixed_ptr minimiser_it{};
     unsorted_ptr unsorted_minimiser_it{};
 
@@ -541,6 +627,8 @@ protected:
 
     //!\brief Stored values per window. It is necessary to store them, because a shift can remove the current minimiser.
     std::vector<value_type> window_values{};
+
+    bool swap_data{false};
 
     sorted_ptr sorted_begin;
     sorted_ptr sorted_end;
