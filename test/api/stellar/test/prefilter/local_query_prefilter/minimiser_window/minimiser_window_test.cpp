@@ -14,6 +14,7 @@ struct minimiser_window_test : public ::testing::Test
 using AgentSplitter = ::testing::Types<
     stellar::test::seqan3_minimiser_window<int>
     ,stellar::test::stellar_minimiser_window<int>
+    ,stellar::test::stellar_minimiser_window<int, true>
 >;
 TYPED_TEST_SUITE(minimiser_window_test, AgentSplitter);
 
