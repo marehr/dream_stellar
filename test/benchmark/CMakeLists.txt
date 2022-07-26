@@ -7,6 +7,8 @@ macro (add_benchmark test_filename)
 
     add_executable("${target}" "${test_filename}")
 
+    target_compile_options ("${target}" PUBLIC "-march=native")
+
     target_link_libraries ("${target}" PUBLIC benchmark_main)
     target_link_libraries ("${target}" PUBLIC "${PROJECT_NAME}_lib")
     # add_dependencies (benchmark ${target})
