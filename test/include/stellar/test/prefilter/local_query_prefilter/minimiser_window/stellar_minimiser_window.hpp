@@ -247,11 +247,7 @@ protected:
         assert(mixed_ptr{this->sorted_end} + 1 == mixed_ptr{this->unsorted_begin});
 
         // unsorted_ptr const current_minimiser_unsorted_it = this->unsorted_minimiser_it;
-        sorted_ptr current_minimiser_sorted_it =
-            in_initialization ?
-            this->sorted_begin :
-            (sorted_ptr)((mixed_ptr)this->unsorted_minimiser_it - window_size - 1);
-
+        std::ptrdiff_t minimiser_position = this->unsorted_minimiser_it - this->unsorted_begin;
 #ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "PRE_MINIMISER" << std::endl;
 #endif // STELLAR_MINIMISER_WINDOW_DEBUG
@@ -266,6 +262,7 @@ protected:
             assert(!(this->unsorted_minimiser_it < this->unsorted_begin));
 
             sorted_ptr sorted_begin{_valid_sorted_data().first, this};
+            sorted_ptr current_minimiser_sorted_it = sorted_begin + minimiser_position;
             // there are exactly "window_size" many elements in the unsorted list.
             // Note: Actually there can be less elements in sorted, if the initial range is to small, but this can only
             // happen if in_initialization == true.
@@ -290,6 +287,7 @@ protected:
         // construct minimiser from last to "first" element
         {
             mixed_ptr minimiser_it = mixed_ptr{unsorted_infinity()};
+            sorted_ptr current_minimiser_sorted_it = this->sorted_begin + (in_initialization ? 0 : minimiser_position);
             assert(current_minimiser_sorted_it != this->sorted_end); // range is not empty
             for (sorted_ptr sorted_it = this->sorted_end; sorted_it != current_minimiser_sorted_it; )
             {
