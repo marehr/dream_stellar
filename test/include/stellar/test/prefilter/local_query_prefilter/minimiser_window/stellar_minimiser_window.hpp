@@ -393,20 +393,13 @@ protected:
         derived_t operator-(std::ptrdiff_t d) { return {ptr - d, _host_ptr()}; }
         derived_t operator+(std::ptrdiff_t d) { return {ptr + d, _host_ptr()}; }
 
-        friend auto operator-(derived_t const & ptr1, derived_t const & ptr2)
-        {
-            return ptr1.ptr - ptr2.ptr;
-        }
-
-        friend bool operator==(derived_t const & ptr1, derived_t const & ptr2)
-        {
-            return ptr1.ptr == ptr2.ptr;
-        }
-
-        friend bool operator<(derived_t const & ptr1, derived_t const & ptr2)
-        {
-            return ptr1.ptr < ptr2.ptr;
-        }
+        friend auto operator-(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr - ptr2.ptr; }
+        friend bool operator==(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr == ptr2.ptr; }
+        friend bool operator!=(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr != ptr2.ptr; }
+        friend bool operator<(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr < ptr2.ptr; }
+        friend bool operator<=(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr <= ptr2.ptr; }
+        friend bool operator>(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr > ptr2.ptr; }
+        friend bool operator>=(derived_t const & ptr1, derived_t const & ptr2) { return ptr1.ptr >= ptr2.ptr; }
 
         stellar_minimiser_window const * _host_ptr() const
         {
