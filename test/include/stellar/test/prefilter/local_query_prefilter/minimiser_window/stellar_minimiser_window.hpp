@@ -185,7 +185,12 @@ protected:
 
     unsorted_ptr unsorted_infinity()
     {
-        return {_valid_unsorted_data().first - 1, this};
+        return {_unsorted_infinity_ptr(), this};
+    }
+
+    value_type * _unsorted_infinity_ptr()
+    {
+        return this->window_values.data() + window_size;
     }
 
     std::pair<value_type *, value_type *> _valid_sorted_data()
@@ -232,7 +237,9 @@ protected:
         }
         std::cout << "]" << std::endl;
         std::cout << "\tunsorted: [";
-        for (auto it = this->unsorted_begin - 1; it != this->unsorted_end; ++it)
+        minimizer_seen |= (mixed_ptr)this->unsorted_infinity() == this->minimiser_it;
+        unsorted_minimizer_seen |= this->unsorted_infinity() == this->unsorted_minimiser_it;
+        for (auto it = this->unsorted_begin; it != this->unsorted_end; ++it)
         {
             minimizer_seen |= (mixed_ptr)it == this->minimiser_it;
             unsorted_minimizer_seen |= it == this->unsorted_minimiser_it;
@@ -442,8 +449,12 @@ protected:
                 return !a || b;
             };
 
+            stellar_minimiser_window * host_ptr = const_cast<stellar_minimiser_window *>(this->host_ptr);
+            assert(host_ptr != nullptr);
+
             value_type const * window_begin = host_ptr->window_values.data();
             value_type const * window_end = window_begin + host_ptr->window_values.size() + (dereferencable ? -1 : 0);
+            value_type const * unsorted_infinity_ptr = host_ptr->_unsorted_infinity_ptr();
             {
                 if (!in_range(ptr, window_begin, window_end))
                     std::cout << (dereferencable ? "*" : "") << "W: " << (window_begin - window_begin) << " <= " << (ptr - window_begin) << " < " << (window_end - window_begin) << std::endl;
@@ -465,16 +476,15 @@ protected:
 
             {
                 auto [unsorted_begin, unsorted_end] = host_ptr->_valid_unsorted_data();
-                --unsorted_begin;
                 unsorted_end += (dereferencable ? -1 : 0);
                 bool in_unsorted = std::is_same_v<derived_t, unsorted_ptr>;
                 bool is_initialized =
                     in_range(unsorted_begin, window_begin, window_end) &&
                     in_range(unsorted_end, window_begin, window_end);
                 assert(is_initialized);
-                if (!implies(in_unsorted && is_initialized, in_range(ptr, unsorted_begin, unsorted_end)))
+                if (!implies(in_unsorted && is_initialized, unsorted_infinity_ptr == ptr || in_range(ptr, unsorted_begin, unsorted_end)))
                     std::cout << (dereferencable ? "*" : "") << "U: " << (unsorted_begin - window_begin) << " <= " << (ptr - window_begin) << " < " << (unsorted_end - window_begin) << std::endl;
-                assert(implies(in_unsorted && is_initialized, in_range(ptr, unsorted_begin, unsorted_end)));
+                assert(implies(in_unsorted && is_initialized, unsorted_infinity_ptr == ptr ||  in_range(ptr, unsorted_begin, unsorted_end)));
             }
 
             // std::cout << std::endl;
