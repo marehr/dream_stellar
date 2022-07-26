@@ -75,6 +75,14 @@ public:
      */
     bool cyclic_push(value_type const new_value)
     {
+        auto left_window = [this](mixed_ptr minimiser)
+        {
+            return minimiser < (mixed_ptr)this->sorted_begin;
+        };
+        auto in_sorted = [this](mixed_ptr minimiser)
+        {
+            return minimiser < (mixed_ptr)this->sorted_end;
+        };
 #ifdef STELLAR_MINIMISER_WINDOW_DEBUG
         std::cout << "~~~~~~~~~~~~~~~~~~~" << std::endl;
         std::cout << "cyclic_push(" << new_value << "):" << std::endl;
@@ -83,8 +91,8 @@ public:
         mixed_ptr previous_minimiser_it = this->minimiser_it;
 
         bool const sorted_range_empty = this->sorted_begin == this->sorted_end;
-        bool const previous_minimiser_left_window = previous_minimiser_it < (mixed_ptr)this->sorted_begin;
-        bool const previous_minimiser_was_in_sorted = previous_minimiser_it < (mixed_ptr)this->sorted_end;
+        bool const previous_minimiser_left_window = left_window(previous_minimiser_it);
+        bool const previous_minimiser_was_in_sorted = in_sorted(previous_minimiser_it);
 
         // append new element to unsorted list and update minimiser of the unsorted list
         *this->unsorted_end = new_value;
