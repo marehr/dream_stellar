@@ -186,10 +186,22 @@ protected:
         return {sorted_begin, sorted_begin + window_size};
     }
 
+    std::pair<value_type const *, value_type const *> _valid_sorted_data() const
+    {
+        auto & self = const_cast<stellar_minimiser_window &>(*this);
+        return self._valid_sorted_data();
+    }
+
     std::pair<value_type *, value_type *> _valid_unsorted_data()
     {
         value_type * unsorted_begin = this->window_values.data() + 1 + window_size;
         return {unsorted_begin, unsorted_begin + window_size};
+    }
+
+    std::pair<value_type const *, value_type const *> _valid_unsorted_data() const
+    {
+        auto & self = const_cast<stellar_minimiser_window &>(*this);
+        return self._valid_unsorted_data();
     }
 
     void diagnostics()
@@ -400,8 +412,8 @@ protected:
             if (std::is_same_v<derived_t, unsorted_ptr> && unsorted_begin - 1 <= ptr && ptr <= unsorted_end)
                 return ptr - unsorted_begin;
 
-            value_type * window_begin = host_ptr->window_values.data();
-            value_type * window_end = window_begin + host_ptr->window_values.size();
+            value_type const * window_begin = host_ptr->window_values.data();
+            value_type const * window_end = window_begin + host_ptr->window_values.size();
             if (window_begin <= ptr && ptr <= window_end)
                 return ptr - window_begin;
 
@@ -412,7 +424,7 @@ protected:
         void _assert_bounds([[maybe_unused]] bool const dereferencable = false) const
         {
 #ifdef STELLAR_MINIMISER_WINDOW_DEBUG
-            auto in_range = [](value_type * ptr, value_type * begin, value_type * end)
+            auto in_range = [](value_type const * ptr, value_type const * begin, value_type const * end)
             {
                 return begin <= ptr && ptr <= end;
             };
@@ -422,8 +434,8 @@ protected:
                 return !a || b;
             };
 
-            value_type * window_begin = host_ptr->window_values.data();
-            value_type * window_end = window_begin + host_ptr->window_values.size() + (dereferencable ? -1 : 0);
+            value_type const * window_begin = host_ptr->window_values.data();
+            value_type const * window_end = window_begin + host_ptr->window_values.size() + (dereferencable ? -1 : 0);
             {
                 if (!in_range(ptr, window_begin, window_end))
                     std::cout << (dereferencable ? "*" : "") << "W: " << (window_begin - window_begin) << " <= " << (ptr - window_begin) << " < " << (window_end - window_begin) << std::endl;
