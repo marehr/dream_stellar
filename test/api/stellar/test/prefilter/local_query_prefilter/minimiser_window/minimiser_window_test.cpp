@@ -434,6 +434,79 @@ TYPED_TEST(minimiser_window_test, regression02)
     EXPECT_EQ(it, values.end());
 }
 
+TYPED_TEST(minimiser_window_test, regression03)
+{
+    std::vector<int> values{3, 8, 5, 4, 10, 17, 9, 15, 20, 13, 19, 13};
+
+    TypeParam minimiser_window{4};
+
+    auto it = minimiser_window.initialize(values.begin(), values.end());
+
+    // [*3, 8, 5, 4], 10, 17, 9, 15, 20, 13, 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 3);
+    EXPECT_EQ(minimiser_window.min(), 3);
+    ++it;
+
+    // 3, [8, 5, *4, 10], 17, 9, 15, 20, 13, 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 4);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), true);
+    EXPECT_EQ(minimiser_window.min(), 4);
+    ++it;
+
+    // 3, 8, [5, *4, 10, 17], 9, 15, 20, 13, 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 5);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
+    EXPECT_EQ(minimiser_window.min(), 4);
+    ++it;
+
+    // 3, 8, 5, [*4, 10, 17, 9], 15, 20, 13, 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 6);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
+    EXPECT_EQ(minimiser_window.min(), 4);
+    ++it;
+
+    // 3, 8, 5, 4, [10, 17, *9, 15], 20, 13, 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 7);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), true);
+    EXPECT_EQ(minimiser_window.min(), 9);
+    ++it;
+
+    // 3, 8, 5, 4, 10, [17, *9, 15, 20], 13, 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 8);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
+    EXPECT_EQ(minimiser_window.min(), 9);
+    ++it;
+
+    // 3, 8, 5, 4, 10, 17, [*9, 15, 20, 13], 19, 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 9);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
+    EXPECT_EQ(minimiser_window.min(), 9);
+    ++it;
+
+    // 3, 8, 5, 4, 10, 17, 9, [15, 20, *13, 19], 13
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 10);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), true);
+    EXPECT_EQ(minimiser_window.min(), 13);
+    ++it;
+
+    // 3, 8, 5, 4, 10, 17, 9, 15, [20, *13, 19, 13]
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 11);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), false);
+    EXPECT_EQ(minimiser_window.min(), 13);
+    ++it;
+
+    EXPECT_EQ(it, values.end());
+}
+
 TYPED_TEST(minimiser_window_test, random_reference_impl)
 {
     std::random_device random_device{};
