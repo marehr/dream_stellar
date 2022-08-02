@@ -78,7 +78,7 @@ void compute_forward_simd(size_t const window_size, int const * __restrict sourc
     int32x8_t temporary_minimiser_data[8];
     int32x8_t temporary_offset_data[8];
 
-    for (size_t i = window_size; i > 0; )
+    for (size_t i = window_size - 1; i > 0; )
     {
         --i;
 
@@ -114,10 +114,10 @@ void compute_forward_simd(size_t const window_size, int const * __restrict sourc
         // std::cout << "target_row_i: "; print_simd(target_row_i, window_size);
         // std::cout << "offset_row_i: "; print_simd(offset_row_i, window_size);
 
-        simd_store(target_ptr + window_size * i, target_row_i);
-        simd_store(offset_ptr + window_size * i, offset_row_i);
+        simd_store(target_ptr + (window_size - 1) * i, target_row_i);
+        simd_store(offset_ptr + (window_size - 1) * i, offset_row_i);
 
-        assert((target_ptr + window_size * (i + 1)) <= target_end_ptr);
+        assert((target_ptr + (window_size - 1) * (i + 1)) <= target_end_ptr);
     }
 
     for (size_t i = simd_len - 1; i < simd_len; ++i)
@@ -129,8 +129,8 @@ void compute_forward_simd(size_t const window_size, int const * __restrict sourc
         // std::cout << "target_row_i: "; print_simd(target_row_i, window_size);
         // std::cout << "offset_row_i: "; print_simd(offset_row_i, window_size);
 
-        simd_maskstore(target_ptr + window_size * i, mask_store, target_row_i);
-        simd_maskstore(offset_ptr + window_size * i, mask_store, offset_row_i);
+        simd_maskstore(target_ptr + (window_size - 1) * i, mask_store, target_row_i);
+        simd_maskstore(offset_ptr + (window_size - 1) * i, mask_store, offset_row_i);
     }
 }
 
@@ -142,7 +142,7 @@ void compute_backward_simd(size_t const window_size, int const * __restrict sour
     int32x8_t temporary_minimiser_data[8];
     int32x8_t temporary_offset_data[8];
 
-    for (size_t i = 0; i < window_size; ++i)
+    for (size_t i = 0; i < window_size - 1; ++i)
     {
         // std::cout << "~~~~~~ " << i << std::endl;
         int32x8_t source_column_i = simd_gather(window_size, i, source_ptr);
@@ -176,10 +176,10 @@ void compute_backward_simd(size_t const window_size, int const * __restrict sour
         // std::cout << "target_row_i: "; print_simd(target_row_i, window_size);
         // std::cout << "offset_row_i: "; print_simd(offset_row_i, window_size);
 
-        simd_store(target_ptr + window_size * i, target_row_i);
-        simd_store(offset_ptr + window_size * i, offset_row_i);
+        simd_store(target_ptr + (window_size - 1) * i, target_row_i);
+        simd_store(offset_ptr + (window_size - 1) * i, offset_row_i);
 
-        assert((window_size * (i + 1)) <= target_size);
+        assert(((window_size - 1) * (i + 1)) <= target_size);
     }
 
     for (size_t i = simd_len - 1; i < simd_len; ++i)
@@ -191,8 +191,8 @@ void compute_backward_simd(size_t const window_size, int const * __restrict sour
         // std::cout << "target_row_i: "; print_simd(target_row_i, window_size);
         // std::cout << "offset_row_i: "; print_simd(offset_row_i, window_size);
 
-        simd_maskstore(target_ptr + window_size * i, mask_store, target_row_i);
-        simd_maskstore(offset_ptr + window_size * i, mask_store, offset_row_i);
+        simd_maskstore(target_ptr + (window_size - 1) * i, mask_store, target_row_i);
+        simd_maskstore(offset_ptr + (window_size - 1) * i, mask_store, offset_row_i);
     }
 }
 
@@ -560,8 +560,8 @@ int main()
     window_value_backward.resize(values.size());
     window_offset_backward.resize(values.size());
 
-    compute_forward_full(window_size, values.data(), window_value_forward.data(), window_value_forward.data() + window_value_forward.size(), window_offset_forward.data());
-    compute_backward_full(window_size, values.data(), window_value_backward.data(), window_value_backward.size(), window_offset_backward.data());
+    compute_forward_simd(window_size, values.data(), window_value_forward.data(), window_value_forward.data() + window_value_forward.size(), window_offset_forward.data());
+    compute_backward_simd(window_size, values.data(), window_value_backward.data(), window_value_backward.size(), window_offset_backward.data());
 
     std::cout << "window_value_forward: " << std::endl;
     print_chunked(window_value_forward, window_size - 1);
