@@ -17,5 +17,6 @@ int main()
 {
     gather_test();
     compute_minimiser_blocks_test<compute_forward_full, compute_backward_full>();
+    // compute_minimiser_blocks_test<compute_forward_simd, compute_backward_simd>();
     minimiser_test();
 }

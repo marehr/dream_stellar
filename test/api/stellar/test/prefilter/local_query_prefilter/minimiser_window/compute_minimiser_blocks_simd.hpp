@@ -46,7 +46,7 @@ inline void forward_kernel_simd(int32x8_t const source, int32x8_t offset, int32x
     current_offset = smaller ? offset : current_offset;
 }
 
-void compute_forward_simd(size_t const window_size, int const * __restrict source_ptr, int * __restrict target_ptr, int * const __restrict target_end_ptr, int * __restrict offset_ptr)
+void compute_forward_simd(size_t const window_size, int const * __restrict source_ptr, int * __restrict target_ptr, size_t const target_size, int * __restrict offset_ptr)
 {
     int32x8_t current_minimiser = simd_set<int32x8_t>(std::numeric_limits<int>::max());
     int32x8_t current_offset = simd_set<int32x8_t>(window_size);
@@ -93,7 +93,7 @@ void compute_forward_simd(size_t const window_size, int const * __restrict sourc
         simd_store(target_ptr + (window_size - 1) * i, target_row_i);
         simd_store(offset_ptr + (window_size - 1) * i, offset_row_i);
 
-        assert((target_ptr + (window_size - 1) * (i + 1)) <= target_end_ptr);
+        assert(((window_size - 1) * (i + 1)) <= target_size);
     }
 
     for (size_t i = simd_len - 1; i < simd_len; ++i)
