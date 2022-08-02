@@ -89,72 +89,72 @@ TYPED_TEST(minimiser_window_test, increasing_sequence)
     EXPECT_EQ(it, values.end());
 }
 
-// TYPED_TEST(minimiser_window_test, decreasing_sequence)
-// {
-//     std::vector<int> values{10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-//
-//     TypeParam minimiser_window{4};
-//
-//     auto it = minimiser_window.initialize(values.begin(), values.end());
-//
-//     // [10, 9, 8, 7], 6, 5, 4, 3, 2, 1, 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 3);
-//     EXPECT_EQ(minimiser_window.min(), 7);
-//     ++it;
-//
-//     // 10, [9, 8, 7, 6], 5, 4, 3, 2, 1, 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 4);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 6);
-//     ++it;
-//
-//     // 10, 9, [8, 7, 6, 5], 4, 3, 2, 1, 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 5);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 5);
-//     ++it;
-//
-//     // 10, 9, 8, [7, 6, 5, 4], 3, 2, 1, 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 6);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 4);
-//     ++it;
-//
-//     // 10, 9, 8, 7, [6, 5, 4, 3], 2, 1, 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 7);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 3);
-//     ++it;
-//
-//     // 10, 9, 8, 7, 6, [5, 4, 3, 2], 1, 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 8);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 2);
-//     ++it;
-//
-//     // 10, 9, 8, 7, 6, 5, [4, 3, 2, 1], 0
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 9);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 1);
-//     ++it;
-//
-//     // 10, 9, 8, 7, 6, 5, 4, [3, 2, 1, 0]
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 10);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 0);
-//     ++it;
-//
-//     EXPECT_EQ(it, values.end());
-// }
-//
+TYPED_TEST(minimiser_window_test, decreasing_sequence)
+{
+    std::vector<int> values{10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+
+    TypeParam minimiser_window{4};
+
+    auto it = minimiser_window.initialize(values.begin(), values.end());
+
+    // [10, 9, 8, 7], 6, 5, 4, 3, 2, 1, 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 3);
+    EXPECT_EQ(minimiser_window.min(), 7);
+    ++it;
+
+    // 10, [9, 8, 7, 6], 5, 4, 3, 2, 1, 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 4);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 6);
+    ++it;
+
+    // 10, 9, [8, 7, 6, 5], 4, 3, 2, 1, 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 5);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 5);
+    ++it;
+
+    // 10, 9, 8, [7, 6, 5, 4], 3, 2, 1, 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 6);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 4);
+    ++it;
+
+    // 10, 9, 8, 7, [6, 5, 4, 3], 2, 1, 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 7);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 3);
+    ++it;
+
+    // 10, 9, 8, 7, 6, [5, 4, 3, 2], 1, 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 8);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 2);
+    ++it;
+
+    // 10, 9, 8, 7, 6, 5, [4, 3, 2, 1], 0
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 9);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 1);
+    ++it;
+
+    // 10, 9, 8, 7, 6, 5, 4, [3, 2, 1, 0]
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 10);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 0);
+    ++it;
+
+    EXPECT_EQ(it, values.end());
+}
+
 // TYPED_TEST(minimiser_window_test, random_sequence)
 // {
 //     std::vector<int> values{2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6};
