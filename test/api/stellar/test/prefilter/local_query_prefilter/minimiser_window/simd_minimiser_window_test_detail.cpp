@@ -6,6 +6,8 @@
 
 #include <x86intrin.h>
 
+#include <stellar/test/prefilter/local_query_prefilter/minimiser_window/minimiser_state.hpp>
+
 constexpr size_t simd_len = 8;
 using int32x8_t [[gnu::vector_size(sizeof(int) * simd_len)]] = int;
 using int32x8_mask_t = int32x8_t;
@@ -332,12 +334,7 @@ void gather_test()
     }
 }
 
-enum struct minimiser_state
-{
-    unchanged = 0,
-    left_window = 1,
-    new_minimizer = 2,
-};
+using stellar::test::minimiser_state;
 
 template <typename value_t>
 struct simd_minimiser_window
