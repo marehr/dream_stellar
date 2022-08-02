@@ -94,7 +94,7 @@ struct simd_minimiser_window
         return chunk_state.minimiser;
     }
 
-    minimiser_state cyclic_push()
+    minimiser_state cyclic_push(value_t const new_value)
     {
         ++chunk_state.forward_it;
         ++chunk_state.backward_it;
@@ -184,73 +184,73 @@ void minimiser_test()
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, [4, 12, *0, 15], 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 0);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, [12, *0, 15, 13], 10, 9, 14, 8, 3, 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 0);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, [*0, 15, 13, 10], 9, 14, 8, 3, 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 0);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, [15, 13, 10, *9], 14, 8, 3, 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::left_window);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::left_window);
     assert(minimiser_window.min() == 9);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, [13, 10, *9, 14], 8, 3, 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 9);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, [10, 9, 14, *8], 3, 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::new_minimizer);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::new_minimizer);
     assert(minimiser_window.min() == 8);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, 10, [9, 14, 8, *3], 1, 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::new_minimizer);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::new_minimizer);
     assert(minimiser_window.min() == 3);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, 10, 9, [14, 8, 3, *1], 5, 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::new_minimizer);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::new_minimizer);
     assert(minimiser_window.min() == 1);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, 10, 9, 14, [8, 3, *1, 5], 11, 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 1);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, 10, 9, 14, 8, [3, *1, 5, 11], 7, 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 1);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, [*1, 5, 11, 7], 6" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::unchanged);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::unchanged);
     assert(minimiser_window.min() == 1);
 
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, [*5, 11, 7, 6]" << std::endl;
-    assert(minimiser_window.cyclic_push() == minimiser_state::left_window);
+    assert(minimiser_window.cyclic_push(0) == minimiser_state::left_window);
     assert(minimiser_window.min() == 5);
 }
 
