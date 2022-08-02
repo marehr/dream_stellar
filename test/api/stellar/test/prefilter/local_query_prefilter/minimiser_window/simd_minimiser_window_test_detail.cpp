@@ -392,7 +392,7 @@ struct simd_minimiser_window
         print_chunked(backward_minimizer_offset, window_size);
 
         chunk_state.forward_it = forward_minimizer.data();
-        chunk_state.forward_end = chunk_state.forward_it;
+        chunk_state.forward_end = chunk_state.forward_it + window_size - 1;
         chunk_state.backward_it = backward_minimizer.data() + window_size - 1;
 
         size_t chunk_size = window_size - 1;
@@ -421,10 +421,10 @@ struct simd_minimiser_window
         bool new_chunk = chunk_state.forward_it == chunk_state.forward_end;
         if (new_chunk)
         {
-            chunk_state.forward_end = chunk_state.forward_it + window_size;
-            chunk_state.minimiser = *chunk_state.forward_it;
-            ++chunk_state.forward_it;
-            return false;
+            chunk_state.forward_end = chunk_state.forward_it + window_size - 1;
+            // chunk_state.minimiser = *chunk_state.forward_it;
+            // ++chunk_state.forward_it;
+            // return false;
         }
 
         std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
@@ -519,7 +519,7 @@ void minimiser_test()
 
 int main()
 {
-    // minimiser_test();
+    minimiser_test();
 
     std::vector<int> values{
         3 ,8 ,5 ,4 ,10,17,
