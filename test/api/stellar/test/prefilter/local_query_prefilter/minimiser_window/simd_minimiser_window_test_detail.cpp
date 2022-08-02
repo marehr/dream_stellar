@@ -49,6 +49,27 @@ void print_simd(int32x8_t simd, size_t limit = simd_len)
     std::cout << std::endl;
 }
 
+void print_chunk(auto * data, size_t const chunk_id, size_t const window_size)
+{
+    std::span span{data + chunk_id * window_size, window_size};
+    for (auto & v : span)
+        std::cout << v << ", ";
+    std::cout << std::endl;
+};
+
+void print_chunked(auto const & data, size_t const window_size)
+{
+    size_t chunks = data.size() / window_size;
+    size_t remaining_elements = data.size() % window_size;
+    for (size_t i = 0; i < data.size() / window_size; ++i)
+        print_chunk(data.data(), i, window_size);
+
+    if (remaining_elements > 0)
+    {
+        print_chunk(data.data(), chunks, remaining_elements);
+    }
+};
+
 void compute_forward_simd(size_t const window_size, int const * __restrict source_ptr, int * __restrict target_ptr, int * const __restrict target_end_ptr, int * __restrict offset_ptr)
 {
     int32x8_t current_minimiser = simd_set<int32x8_t>(std::numeric_limits<int>::max());
@@ -286,8 +307,189 @@ void gather_test()
     }
 }
 
+template <typename value_t>
+struct simd_minimiser_window
+{
+    size_t window_size{};
+
+    using index_t = value_t;
+
+    std::array<value_t, 20> forward_minimizer;
+    std::array<index_t, 20> forward_minimizer_offset;
+    std::array<value_t, 20> backward_minimizer;
+    std::array<index_t, 20> backward_minimizer_offset;
+
+    struct chunk_state_t
+    {
+        value_t * forward_it;
+        value_t * forward_end;
+        value_t * backward_it;
+        index_t * forward_offset_it;
+        index_t * backward_offset_it;
+        value_t minimiser{};
+        bool minimiser_in_forward{false};
+    };
+
+
+    chunk_state_t chunk_state{};
+
+    template <typename iterator_t>
+    iterator_t initialize(iterator_t it, iterator_t sentinel)
+    {
+        std::cout << "values: " << std::endl;
+
+        struct values_t
+        {
+            iterator_t it;
+            iterator_t sentinel;
+
+            size_t size() const
+            {
+                return sentinel - it;
+            }
+
+            value_t const * data() const
+            {
+                return &*it;
+            }
+        };
+        print_chunked(values_t{it, sentinel}, window_size);
+
+        compute_forward_full(window_size, &*it, forward_minimizer.begin(), forward_minimizer.end(), forward_minimizer_offset.data());
+        std::cout << "forward_minimizer: " << std::endl;
+        print_chunked(forward_minimizer, window_size);
+        std::cout << "forward_minimizer_offset: " << std::endl;
+        print_chunked(forward_minimizer_offset, window_size);
+        compute_backward_full(window_size, &*it, backward_minimizer.begin(), backward_minimizer.size(), backward_minimizer_offset.data());
+        std::cout << "backward_minimizer: " << std::endl;
+        print_chunked(backward_minimizer, window_size);
+        std::cout << "backward_minimizer_offset: " << std::endl;
+        print_chunked(backward_minimizer_offset, window_size);
+
+        chunk_state.forward_it = forward_minimizer.data();
+        chunk_state.forward_end = chunk_state.forward_it + window_size;
+        chunk_state.backward_it = backward_minimizer.data() + window_size - 1;
+        chunk_state.forward_offset_it = forward_minimizer_offset.data();
+        chunk_state.backward_offset_it = backward_minimizer_offset.data();
+        chunk_state.minimiser = *chunk_state.forward_it;
+        return it;
+    }
+
+    value_t min() const
+    {
+        return chunk_state.minimiser;
+    }
+
+    bool cyclic_push()
+    {
+        ++chunk_state.forward_it;
+        ++chunk_state.backward_it;
+        ++chunk_state.forward_offset_it;
+        ++chunk_state.backward_offset_it;
+
+        bool new_chunk = chunk_state.forward_it == chunk_state.forward_end;
+        if (new_chunk)
+        {
+            chunk_state.forward_end = chunk_state.forward_it + window_size;
+            chunk_state.minimiser = *chunk_state.forward_it;
+            ++chunk_state.forward_it;
+            return false;
+        }
+
+        std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+        std::ptrdiff_t chunk_size = (chunk_state.forward_end - chunk_state.forward_it);
+        assert(chunk_size >= 0);
+        std::cout << "cyclic_push::forward_minimser: ||=" << (chunk_size) << std::endl;
+        print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size);
+        std::cout << "cyclic_push::backward_minimser: ||=" << (chunk_size + 1) << std::endl;
+        print_chunked(std::span(chunk_state.backward_it, chunk_size + 1), window_size + 1);
+        std::cout << "cyclic_push::forward_minimser_offset: ||=" << (chunk_size) << std::endl;
+        print_chunked(std::span(chunk_state.forward_offset_it, chunk_size), window_size);
+        std::cout << "cyclic_push::backward_minimser_offset: ||=" << (chunk_size + 1) << std::endl;
+        print_chunked(std::span(chunk_state.backward_offset_it, chunk_size + 1), window_size + 1);
+
+        std::ptrdiff_t position = window_size - chunk_size;
+        bool forward_left_window = *(chunk_state.forward_offset_it-1) != *chunk_state.forward_offset_it;
+        bool backward_left_window = *(chunk_state.backward_offset_it-1) != *chunk_state.backward_offset_it;
+        std::cout << "cyclic_push::new_chunk: " << (new_chunk ? "true" : "false") << std::endl;
+        std::cout << "cyclic_push::forward_left_window: " << (forward_left_window ? "true" : "false") << std::endl;
+        std::cout << "cyclic_push::backward_left_window: " << (backward_left_window ? "true" : "false") << std::endl;
+
+        bool smaller = *chunk_state.forward_it < *chunk_state.backward_it;
+        chunk_state.minimiser = smaller ? *chunk_state.forward_it : *chunk_state.backward_it;
+        std::cout << "cyclic_push::minimiser: " << chunk_state.minimiser << std::endl;
+        return false;
+    }
+};
+
+void minimiser_test()
+{
+    std::vector<int> values{
+        2, 4, 12, 0,
+        15, 13, 10, 9,
+        14, 8, 3, 1,
+        5, 11, 7, 6};
+
+    simd_minimiser_window<int> minimiser_window{4};
+
+    auto it = minimiser_window.initialize(values.begin(), values.end());
+
+    // [2, 4, 12, 0], 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.min() == 0);
+
+    // 2, [4, 12, 0, 15], 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 0);
+
+    // 2, 4, [12, 0, 15, 13], 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 0);
+
+    // 2, 4, 12, [0, 15, 13, 10], 9, 14, 8, 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 0);
+
+    // 2, 4, 12, 0, [15, 13, 10, 9], 14, 8, 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == true || true);
+    assert(minimiser_window.min() == 9);
+
+    // 2, 4, 12, 0, 15, [13, 10, 9, 14], 8, 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 9);
+
+    // 2, 4, 12, 0, 15, 13, [10, 9, 14, 8], 3, 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == true || true);
+    assert(minimiser_window.min() == 8);
+
+    // 2, 4, 12, 0, 15, 13, 10, [9, 14, 8, 3], 1, 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == true || true);
+    assert(minimiser_window.min() == 3);
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, [14, 8, 3, 1], 5, 11, 7, 6
+    assert(minimiser_window.cyclic_push() == true || true);
+    assert(minimiser_window.min() == 1);
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, [8, 3, 1, 5], 11, 7, 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 1);
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, [3, 1, 5, 11], 7, 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 1);
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, [1, 5, 11, 7], 6
+    assert(minimiser_window.cyclic_push() == false);
+    assert(minimiser_window.min() == 1);
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, [5, 11, 7, 6]
+    assert(minimiser_window.cyclic_push() == true || true);
+    assert(minimiser_window.min() == 5);
+}
+
 int main()
 {
+    // minimiser_test();
+
     std::vector<int> values{
         3 ,8 ,5 ,4 ,10,17,
         9 ,15,20,13,19,13,
@@ -362,32 +564,20 @@ int main()
     compute_forward_simd(window_size, values.data(), window_value_forward.data(), window_value_forward.data() + window_value_forward.size(), window_offset_forward.data());
     compute_backward_simd(window_size, values.data(), window_value_backward.data(), window_value_backward.size(), window_offset_backward.data());
 
-    auto print_chunk = [window_size](auto * data, size_t const chunk_id)
-    {
-        std::span span{data + chunk_id * window_size, window_size};
-        for (auto & v : span)
-            std::cout << v << ", ";
-        std::cout << std::endl;
-    };
-
     std::cout << "window_value_forward: " << std::endl;
-    for (size_t i = 0; i < window_value_forward.size() / window_size; ++i)
-        print_chunk(window_value_forward.data(), i);
+    print_chunked(window_value_forward, window_size);
     assert(std::equal(window_value_forward_expected.begin(), window_value_forward_expected.end(), window_value_forward.begin()));
 
     std::cout << "window_offset_forward: " << std::endl;
-    for (size_t i = 0; i < window_offset_forward.size() / window_size; ++i)
-        print_chunk(window_offset_forward.data(), i);
+    print_chunked(window_offset_forward, window_size);
     assert(std::equal(window_offset_forward_expected.begin(), window_offset_forward_expected.end(), window_offset_forward.begin()));
 
     std::cout << "window_value_backward: " << std::endl;
-    for (size_t i = 0; i < window_value_backward.size() / window_size; ++i)
-        print_chunk(window_value_backward.data(), i);
+    print_chunked(window_value_backward, window_size);
     assert(std::equal(window_value_backward_expected.begin(), window_value_backward_expected.end(), window_value_backward.begin()));
 
     std::cout << "window_offset_backward: " << std::endl;
-    for (size_t i = 0; i < window_offset_backward.size() / window_size; ++i)
-        print_chunk(window_offset_backward.data(), i);
+    print_chunked(window_offset_backward, window_size);
     assert(std::equal(window_offset_backward_expected.begin(), window_offset_backward_expected.end(), window_offset_backward.begin()));
 
 }
