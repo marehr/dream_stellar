@@ -42,6 +42,7 @@ struct simd_minimiser_window
     template <typename iterator_t>
     iterator_t initialize(iterator_t it, iterator_t sentinel)
     {
+        iterator_t begin = it;
         std::cout << "values: " << std::endl;
 
         struct values_t
@@ -86,7 +87,7 @@ struct simd_minimiser_window
         chunk_state.minimiser_in_forward = *chunk_state.forward_it < *chunk_state.backward_it;
         chunk_state.minimiser_position = chunk_state.minimiser_in_forward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
         chunk_state.minimiser = std::min(*chunk_state.forward_it, *chunk_state.backward_it);
-        return it;
+        return begin + window_size - 1;
     }
 
     value_t min() const
