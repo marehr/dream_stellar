@@ -6,6 +6,8 @@
 #include <vector>
 #include <stdexcept>
 
+#include <stellar/test/prefilter/local_query_prefilter/minimiser_window/minimiser_state.hpp>
+
 #ifndef NDEBUG
 // #define STELLAR_MINIMISER_WINDOW_DEBUG
 #endif
@@ -73,7 +75,7 @@ public:
      * For the following windows, we remove the first window value (is now not in window_values) and add the new
      * value that results from the window shifting.
      */
-    bool cyclic_push(value_type const new_value)
+    minimiser_state cyclic_push(value_type const new_value)
     {
         auto left_window = [this](mixed_ptr minimiser)
         {
@@ -161,7 +163,10 @@ public:
 
             recalculate_minimum(false);
 
-            return minimiser_changed;
+            minimiser_state state = minimiser_state::unchanged;
+            state = (minimiser_changed ? minimiser_state::new_minimizer : state);
+            state = (previous_minimiser_left_window ? minimiser_state::left_window : state);
+            return state;
         }
         else if (previous_minimiser_left_window)
         {
@@ -188,7 +193,7 @@ public:
             std::cout << "this->minimiser_it: " << this->minimiser_it._debug_position() << std::endl;
 #endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
-            return true;
+            return minimiser_state::left_window;
         } else
         {
             // example:
@@ -207,7 +212,7 @@ public:
 #endif // STELLAR_MINIMISER_WINDOW_DEBUG
 
             bool minimiser_changed = previous_minimiser_it != this->minimiser_it;
-            return minimiser_changed;
+            return minimiser_changed ? minimiser_state::new_minimizer : minimiser_state::unchanged;
         }
     }
 

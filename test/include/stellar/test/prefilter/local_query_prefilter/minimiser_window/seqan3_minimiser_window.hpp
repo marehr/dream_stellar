@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <deque>
 
+#include <stellar/test/prefilter/local_query_prefilter/minimiser_window/minimiser_state.hpp>
+
 namespace stellar {
 namespace test {
 
@@ -44,7 +46,7 @@ struct seqan3_minimiser_window
      * For the following windows, we remove the first window value (is now not in window_values) and add the new
      * value that results from the window shifting.
      */
-    bool cyclic_push(value_type const new_value)
+    minimiser_state cyclic_push(value_type const new_value)
     {
         window_values.pop_front();
         window_values.push_back(new_value);
@@ -52,18 +54,18 @@ struct seqan3_minimiser_window
         if (minimiser_position_offset == 0)
         {
             recalculate_minimum();
-            return true;
+            return minimiser_state::left_window;
         }
 
         if (new_value < minimiser_value)
         {
             minimiser_value = new_value;
             minimiser_position_offset = window_values.size() - 1;
-            return true;
+            return minimiser_state::new_minimizer;
         }
 
         --minimiser_position_offset;
-        return false;
+        return minimiser_state::unchanged;
     }
 
 protected:
