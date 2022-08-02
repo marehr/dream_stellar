@@ -200,7 +200,7 @@ void compute_forward_chunk(size_t const window_size, int const * __restrict sour
 {
     int current_minimiser = std::numeric_limits<int>::max();
     size_t current_offset = window_size;
-    for (size_t offset = window_size; offset > 0;)
+    for (size_t offset = window_size - 1; offset > 0;)
     {
         --source_ptr;
         --target_ptr;
@@ -219,7 +219,7 @@ void compute_backward_chunk(size_t const window_size, int const * __restrict sou
 {
     int current_minimiser = std::numeric_limits<int>::max();
     size_t current_offset = 0;
-    for (size_t offset = 0; offset < window_size; ++offset, ++source_ptr, ++target_ptr, ++offset_ptr)
+    for (size_t offset = 0; offset < window_size - 1; ++offset, ++source_ptr, ++target_ptr, ++offset_ptr)
     {
         bool smaller = *source_ptr < current_minimiser;
         current_minimiser = smaller ? *source_ptr : current_minimiser;
@@ -234,13 +234,13 @@ void compute_forward_full(size_t const window_size, int const * __restrict sourc
     for (; true ;)
     {
         source_ptr += window_size;
-        target_ptr += window_size;
-        offset_ptr += window_size;
+        target_ptr += window_size - 1;
+        offset_ptr += window_size - 1;
 
         if (target_ptr > target_end_ptr)
             break;
 
-        compute_forward_chunk(window_size, source_ptr, target_ptr, offset_ptr);
+        compute_forward_chunk(window_size, source_ptr - 1, target_ptr, offset_ptr);
     }
 }
 
@@ -252,8 +252,8 @@ void compute_backward_full(size_t const window_size, int const * __restrict sour
         compute_backward_chunk(window_size, source_ptr, target_ptr, offset_ptr);
 
         source_ptr += window_size;
-        target_ptr += window_size;
-        offset_ptr += window_size;
+        target_ptr += window_size - 1;
+        offset_ptr += window_size - 1;
     }
 }
 
@@ -503,47 +503,46 @@ int main()
     };
 
     std::vector<int> window_value_forward_expected{
-        3 /*3 */,4 /*8 */,4 /*5 */,4 /*4 */,10/*10*/,17,
-        9 /*9 */,13/*15*/,13/*20*/,13/*13*/,13/*19*/,13,
-        0 /*0 */,0 /*1 */,0 /*4 */,0 /*0 */,8 /*8 */,18,
-        8 /*8 */,8 /*16*/,8 /*14*/,8 /*9 */,8 /*14*/,8 ,
-        3 /*19*/,3 /*3 */,3 /*3 */,5 /*9 */,5 /*5 */,20,
-        0 /*0 */,1 /*1 */,2 /*2 */,3 /*3 */,4 /*4 */,5 ,
-        6 /*6 */,7 /*7 */,8 /*8 */,9 /*9 */,10/*10*/,11,
-        6 /*11*/,6 /*10*/,6 /*9 */,6 /*8 */,6 /*7 */,6 ,
-        // /*5*/ 0,/*4*/  0, /*3*/  0,/*2*/  0, /*1*/  0,  0
+        /*1:*/ 3 /*3 */,4 /*8 */,4 /*5 */,4 /*4 */,10/*10*/,//17,
+        /*2:*/ 9 /*9 */,13/*15*/,13/*20*/,13/*13*/,19/*19*/,//13,
+        /*3:*/ 0 /*0 */,0 /*1 */,0 /*4 */,0 /*0 */,8 /*8 */,//18,
+        /*4:*/ 8 /*8 */,9 /*16*/,9 /*14*/,9 /*9 */,14/*14*/,//8 ,
+        /*5:*/ 3 /*19*/,3 /*3 */,3 /*3 */,5 /*9 */,5 /*5 */,//20,
+        /*6:*/ 0 /*0 */,1 /*1 */,2 /*2 */,3 /*3 */,4 /*4 */,//5 ,
+        /*7:*/ 6 /*6 */,7 /*7 */,8 /*8 */,9 /*9 */,10/*10*/,//11,
+        /*8:*/ 7 /*11*/,7 /*10*/,7 /*9 */,7 /*8 */,7 /*7 */,//6 ,
     };
     std::vector<int> window_offset_forward_expected{
-        0, 3, 3, 3, 4, 5,
-        0, 5, 5, 5, 5, 5,
-        3, 3, 3, 3, 4, 5,
-        5, 5, 5, 5, 5, 5,
-        2, 2, 2, 4, 4, 5,
-        0, 1, 2, 3, 4, 5,
-        0, 1, 2, 3, 4, 5,
-        5, 5, 5, 5, 5, 5,
+        /*1:*/ 0, 3, 3, 3, 4,
+        /*2:*/ 0, 3, 3, 3, 4,
+        /*3:*/ 3, 3, 3, 3, 4,
+        /*4:*/ 0, 3, 3, 3, 4,
+        /*5:*/ 2, 2, 2, 4, 4,
+        /*6:*/ 0, 1, 2, 3, 4,
+        /*7:*/ 0, 1, 2, 3, 4,
+        /*8:*/ 4, 4, 4, 4, 4,
         // 5, 5, 5, 5, 5, 5,
     };
 
     std::vector<int> window_value_backward_expected{
-        3 ,3 /*8 */,3 /*5 */,3 /*4 */,3 /*10*/,3 /*17*/,
-        9 ,9 /*15*/,9 /*20*/,9 /*13*/,9 /*19*/,9 /*13*/,
-        0 ,0 /*1 */,0 /*4 */,0 /*0 */,0 /*8 */,0 /*18*/,
-        8 ,8 /*16*/,8 /*14*/,8 /*9 */,8 /*14*/,8 /*8 */,
-        19,3 /*3 */,3 /*3 */,3 /*9 */,3 /*5 */,3 /*20*/,
-        0 ,0 /*1 */,0 /*2 */,0 /*3 */,0 /*4 */,0 /*5 */,
-        6 ,6 /*7 */,6 /*8 */,6 /*9 */,6 /*10*/,6 /*11*/,
-        11,10/*10*/,9 /*9 */,8 /*8 */,7 /*7 */,6 /*6 */,
+        3 ,3 /*8 */,3 /*5 */,3 /*4 */,3 /*10*/,//3 /*17*/,
+        9 ,9 /*15*/,9 /*20*/,9 /*13*/,9 /*19*/,//9 /*13*/,
+        0 ,0 /*1 */,0 /*4 */,0 /*0 */,0 /*8 */,//0 /*18*/,
+        8 ,8 /*16*/,8 /*14*/,8 /*9 */,8 /*14*/,//8 /*8 */,
+        19,3 /*3 */,3 /*3 */,3 /*9 */,3 /*5 */,//3 /*20*/,
+        0 ,0 /*1 */,0 /*2 */,0 /*3 */,0 /*4 */,//0 /*5 */,
+        6 ,6 /*7 */,6 /*8 */,6 /*9 */,6 /*10*/,//6 /*11*/,
+        11,10/*10*/,9 /*9 */,8 /*8 */,7 /*7 */,//6 /*6 */,
     };
     std::vector<int> window_offset_backward_expected{
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 1, 1, 1, 1, 1,
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 1, 2, 3, 4, 5,
+        0, 0, 0, 0, 0, //0,
+        0, 0, 0, 0, 0, //0,
+        0, 0, 0, 0, 0, //0,
+        0, 0, 0, 0, 0, //0,
+        0, 1, 1, 1, 1, //1,
+        0, 0, 0, 0, 0, //0,
+        0, 0, 0, 0, 0, //0,
+        0, 1, 2, 3, 4, //5,
         // 5, 5, 5, 5, 5, 5,
     };
 
@@ -561,23 +560,23 @@ int main()
     window_value_backward.resize(values.size());
     window_offset_backward.resize(values.size());
 
-    compute_forward_simd(window_size, values.data(), window_value_forward.data(), window_value_forward.data() + window_value_forward.size(), window_offset_forward.data());
-    compute_backward_simd(window_size, values.data(), window_value_backward.data(), window_value_backward.size(), window_offset_backward.data());
+    compute_forward_full(window_size, values.data(), window_value_forward.data(), window_value_forward.data() + window_value_forward.size(), window_offset_forward.data());
+    compute_backward_full(window_size, values.data(), window_value_backward.data(), window_value_backward.size(), window_offset_backward.data());
 
     std::cout << "window_value_forward: " << std::endl;
-    print_chunked(window_value_forward, window_size);
+    print_chunked(window_value_forward, window_size - 1);
     assert(std::equal(window_value_forward_expected.begin(), window_value_forward_expected.end(), window_value_forward.begin()));
 
     std::cout << "window_offset_forward: " << std::endl;
-    print_chunked(window_offset_forward, window_size);
+    print_chunked(window_offset_forward, window_size - 1);
     assert(std::equal(window_offset_forward_expected.begin(), window_offset_forward_expected.end(), window_offset_forward.begin()));
 
     std::cout << "window_value_backward: " << std::endl;
-    print_chunked(window_value_backward, window_size);
+    print_chunked(window_value_backward, window_size - 1);
     assert(std::equal(window_value_backward_expected.begin(), window_value_backward_expected.end(), window_value_backward.begin()));
 
     std::cout << "window_offset_backward: " << std::endl;
-    print_chunked(window_offset_backward, window_size);
+    print_chunked(window_offset_backward, window_size - 1);
     assert(std::equal(window_offset_backward_expected.begin(), window_offset_backward_expected.end(), window_offset_backward.begin()));
 
 }
