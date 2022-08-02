@@ -49,9 +49,9 @@ void print_simd(int32x8_t simd, size_t limit = simd_len)
     std::cout << std::endl;
 }
 
-void print_chunk(auto * data, size_t const chunk_id, size_t const window_size)
+void print_chunk(auto * data, size_t const chunk_id, size_t const window_size, size_t const limit)
 {
-    std::span span{data + chunk_id * window_size, window_size};
+    std::span span{data + chunk_id * window_size, limit};
     for (auto & v : span)
         std::cout << v << ", ";
     std::cout << std::endl;
@@ -62,11 +62,11 @@ void print_chunked(auto const & data, size_t const window_size)
     size_t chunks = data.size() / window_size;
     size_t remaining_elements = data.size() % window_size;
     for (size_t i = 0; i < data.size() / window_size; ++i)
-        print_chunk(data.data(), i, window_size);
+        print_chunk(data.data(), i, window_size, window_size);
 
     if (remaining_elements > 0)
     {
-        print_chunk(data.data(), chunks, remaining_elements);
+        print_chunk(data.data(), chunks, window_size, remaining_elements);
     }
 };
 
@@ -200,7 +200,7 @@ void compute_forward_chunk(size_t const window_size, int const * __restrict sour
 {
     int current_minimiser = std::numeric_limits<int>::max();
     size_t current_offset = window_size;
-    for (size_t offset = window_size - 1; offset > 0;)
+    for (size_t offset = window_size; offset > 0;)
     {
         --source_ptr;
         --target_ptr;
@@ -229,18 +229,31 @@ void compute_backward_chunk(size_t const window_size, int const * __restrict sou
     }
 }
 
-void compute_forward_full(size_t const window_size, int const * __restrict source_ptr, int * __restrict target_ptr, int * const __restrict target_end_ptr, int * __restrict offset_ptr)
+void compute_forward_full(size_t const window_size, int const * __restrict source_ptr, int * __restrict target_ptr, size_t const target_size, int * __restrict offset_ptr)
 {
+    std::ptrdiff_t remaining_elements = target_size % (window_size - 1);
+    int * const target_peeled_end_ptr = target_ptr + target_size - remaining_elements;
     for (; true ;)
     {
-        source_ptr += window_size;
+        source_ptr += window_size - 1;
         target_ptr += window_size - 1;
         offset_ptr += window_size - 1;
 
-        if (target_ptr > target_end_ptr)
+        if (target_ptr > target_peeled_end_ptr)
             break;
 
-        compute_forward_chunk(window_size, source_ptr - 1, target_ptr, offset_ptr);
+        compute_forward_chunk(window_size - 1, source_ptr, target_ptr, offset_ptr);
+    }
+
+    if (remaining_elements > 0)
+    {
+        source_ptr -= window_size - 1;
+        target_ptr -= window_size - 1;
+        offset_ptr -= window_size - 1;
+        source_ptr += remaining_elements;
+        target_ptr += remaining_elements;
+        offset_ptr += remaining_elements;
+        compute_forward_chunk(remaining_elements, source_ptr, target_ptr, offset_ptr);
     }
 }
 
@@ -355,7 +368,7 @@ struct simd_minimiser_window
         };
         print_chunked(values_t{it, sentinel}, window_size);
 
-        compute_forward_full(window_size, &*it, forward_minimizer.begin(), forward_minimizer.end(), forward_minimizer_offset.data());
+        compute_forward_full(window_size, &*it, forward_minimizer.begin(), forward_minimizer.size(), forward_minimizer_offset.data());
         std::cout << "forward_minimizer: " << std::endl;
         print_chunked(forward_minimizer, window_size);
         std::cout << "forward_minimizer_offset: " << std::endl;
@@ -367,11 +380,17 @@ struct simd_minimiser_window
         print_chunked(backward_minimizer_offset, window_size);
 
         chunk_state.forward_it = forward_minimizer.data();
-        chunk_state.forward_end = chunk_state.forward_it + window_size;
+        chunk_state.forward_end = chunk_state.forward_it;
         chunk_state.backward_it = backward_minimizer.data() + window_size - 1;
+
+        size_t chunk_size = window_size - 1;
+        std::cout << "cyclic_push::forward_minimser: ||=" << (chunk_size) << std::endl;
+        print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size - 1);
+        std::cout << "cyclic_push::backward_minimser: ||=" << (chunk_size) << std::endl;
+        print_chunked(std::span(chunk_state.backward_it, chunk_size), window_size - 1);
         chunk_state.forward_offset_it = forward_minimizer_offset.data();
         chunk_state.backward_offset_it = backward_minimizer_offset.data();
-        chunk_state.minimiser = *chunk_state.forward_it;
+        chunk_state.minimiser = std::min(*chunk_state.forward_it, *chunk_state.backward_it);
         return it;
     }
 
@@ -400,13 +419,13 @@ struct simd_minimiser_window
         std::ptrdiff_t chunk_size = (chunk_state.forward_end - chunk_state.forward_it);
         assert(chunk_size >= 0);
         std::cout << "cyclic_push::forward_minimser: ||=" << (chunk_size) << std::endl;
-        print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size);
-        std::cout << "cyclic_push::backward_minimser: ||=" << (chunk_size + 1) << std::endl;
-        print_chunked(std::span(chunk_state.backward_it, chunk_size + 1), window_size + 1);
+        print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size - 1);
+        std::cout << "cyclic_push::backward_minimser: ||=" << (chunk_size) << std::endl;
+        print_chunked(std::span(chunk_state.backward_it, chunk_size), window_size - 1);
         std::cout << "cyclic_push::forward_minimser_offset: ||=" << (chunk_size) << std::endl;
-        print_chunked(std::span(chunk_state.forward_offset_it, chunk_size), window_size);
-        std::cout << "cyclic_push::backward_minimser_offset: ||=" << (chunk_size + 1) << std::endl;
-        print_chunked(std::span(chunk_state.backward_offset_it, chunk_size + 1), window_size + 1);
+        print_chunked(std::span(chunk_state.forward_offset_it, chunk_size), window_size - 1);
+        std::cout << "cyclic_push::backward_minimser_offset: ||=" << (chunk_size) << std::endl;
+        print_chunked(std::span(chunk_state.backward_offset_it, chunk_size), window_size - 1);
 
         std::ptrdiff_t position = window_size - chunk_size;
         bool forward_left_window = *(chunk_state.forward_offset_it-1) != *chunk_state.forward_offset_it;
@@ -503,25 +522,28 @@ int main()
     };
 
     std::vector<int> window_value_forward_expected{
-        /*1:*/ 3 /*3 */,4 /*8 */,4 /*5 */,4 /*4 */,10/*10*/,//17,
-        /*2:*/ 9 /*9 */,13/*15*/,13/*20*/,13/*13*/,19/*19*/,//13,
-        /*3:*/ 0 /*0 */,0 /*1 */,0 /*4 */,0 /*0 */,8 /*8 */,//18,
-        /*4:*/ 8 /*8 */,9 /*16*/,9 /*14*/,9 /*9 */,14/*14*/,//8 ,
-        /*5:*/ 3 /*19*/,3 /*3 */,3 /*3 */,5 /*9 */,5 /*5 */,//20,
-        /*6:*/ 0 /*0 */,1 /*1 */,2 /*2 */,3 /*3 */,4 /*4 */,//5 ,
-        /*7:*/ 6 /*6 */,7 /*7 */,8 /*8 */,9 /*9 */,10/*10*/,//11,
-        /*8:*/ 7 /*11*/,7 /*10*/,7 /*9 */,7 /*8 */,7 /*7 */,//6 ,
+        /*1:*/ 3 /*3 */,4 /*8 */,4 /*5 */,4 /*4 */,10/*10*/,
+        /*2:*/ 9 /*17*/,9 /*9 */,13/*15*/,13/*20*/,13/*13*/,
+        /*3:*/ 0 /*19*/,0 /*13*/,0 /*0 */,1 /*1 */,4 /*4 */,
+        /*4:*/ 0 /*0 */,8 /*8 */,8 /*18*/,8 /*8 */,16/*16*/,
+        /*5:*/ 8 /*14*/,8 /*9 */,8 /*14*/,8 /*8 */,19/*19*/,
+        /*6:*/ 3 /*3 */,3 /*3 */,5 /*9 */,5 /*5 */,20/*20*/,
+        /*7:*/ 0 /*0 */,1 /*1 */,2 /*2 */,3 /*3 */,4 /*4 */,
+        /*8:*/ 5 /*5 */,6 /*6 */,7 /*7 */,8 /*8 */,9 /*9 */,
+        /*9:*/ 9 /*10*/,9 /*11*/,9 /*11*/,9 /*10*/,9 /*9 */,
+        /*0:*/ 6 /*8 */,6 /*7 */,6 /*6 */,
     };
     std::vector<int> window_offset_forward_expected{
         /*1:*/ 0, 3, 3, 3, 4,
-        /*2:*/ 0, 3, 3, 3, 4,
-        /*3:*/ 3, 3, 3, 3, 4,
+        /*2:*/ 1, 1, 4, 4, 4,
+        /*3:*/ 2, 2, 2, 3, 4,
         /*4:*/ 0, 3, 3, 3, 4,
-        /*5:*/ 2, 2, 2, 4, 4,
-        /*6:*/ 0, 1, 2, 3, 4,
+        /*5:*/ 3, 3, 3, 3, 4,
+        /*6:*/ 1, 1, 3, 3, 4,
         /*7:*/ 0, 1, 2, 3, 4,
-        /*8:*/ 4, 4, 4, 4, 4,
-        // 5, 5, 5, 5, 5, 5,
+        /*8:*/ 0, 1, 2, 3, 4,
+        /*9:*/ 4, 4, 4, 4, 4,
+        /*0:*/ 2, 2, 2,
     };
 
     std::vector<int> window_value_backward_expected{
@@ -560,7 +582,7 @@ int main()
     window_value_backward.resize(values.size());
     window_offset_backward.resize(values.size());
 
-    compute_forward_simd(window_size, values.data(), window_value_forward.data(), window_value_forward.data() + window_value_forward.size(), window_offset_forward.data());
+    compute_forward_full(window_size, values.data(), window_value_forward.data(), window_value_forward.size(), window_offset_forward.data());
     compute_backward_simd(window_size, values.data(), window_value_backward.data(), window_value_backward.size(), window_offset_backward.data());
 
     std::cout << "window_value_forward: " << std::endl;
