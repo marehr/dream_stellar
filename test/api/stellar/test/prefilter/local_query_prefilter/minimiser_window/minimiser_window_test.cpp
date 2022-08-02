@@ -155,107 +155,107 @@ TYPED_TEST(minimiser_window_test, decreasing_sequence)
     EXPECT_EQ(it, values.end());
 }
 
-// TYPED_TEST(minimiser_window_test, random_sequence)
-// {
-//     std::vector<int> values{2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6};
-//
-//     TypeParam minimiser_window{4};
-//
-//     auto it = minimiser_window.initialize(values.begin(), values.end());
-//
-//     // [2, 4, 12, *0], 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 3);
-//     EXPECT_EQ(minimiser_window.min(), 0);
-//     ++it;
-//
-//     // 2, [4, 12, *0, 15], 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 4);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 0);
-//     ++it;
-//
-//     // 2, 4, [12, *0, 15, 13], 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 5);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 0);
-//     ++it;
-//
-//     // 2, 4, 12, [*0, 15, 13, 10], 9, 14, 8, 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 6);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 0);
-//     ++it;
-//
-//     // 2, 4, 12, 0, [15, 13, 10, *9], 14, 8, 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 7);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::left_window);
-//     EXPECT_EQ(minimiser_window.min(), 9);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, [13, 10, *9, 14], 8, 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 8);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 9);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, [10, 9, 14, *8], 3, 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 9);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 8);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, 10, [9, 14, 8, *3], 1, 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 10);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 3);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, 10, 9, [14, 8, 3, *1], 5, 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 11);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
-//     EXPECT_EQ(minimiser_window.min(), 1);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, 10, 9, 14, [8, 3, *1, 5], 11, 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 12);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 1);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, [3, *1, 5, 11], 7, 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 13);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 1);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, [*1, 5, 11, 7], 6
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 14);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
-//     EXPECT_EQ(minimiser_window.min(), 1);
-//     ++it;
-//
-//     // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, [*5, 11, 7, 6]
-//     EXPECT_NE(it, values.end());
-//     EXPECT_EQ(it - values.begin(), 15);
-//     EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::left_window);
-//     EXPECT_EQ(minimiser_window.min(), 5);
-//     ++it;
-//
-//     EXPECT_EQ(it, values.end());
-// }
-//
+TYPED_TEST(minimiser_window_test, random_sequence)
+{
+    std::vector<int> values{2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6};
+
+    TypeParam minimiser_window{4};
+
+    auto it = minimiser_window.initialize(values.begin(), values.end());
+
+    // [2, 4, 12, *0], 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 3);
+    EXPECT_EQ(minimiser_window.min(), 0);
+    ++it;
+
+    // 2, [4, 12, *0, 15], 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 4);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 0);
+    ++it;
+
+    // 2, 4, [12, *0, 15, 13], 10, 9, 14, 8, 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 5);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 0);
+    ++it;
+
+    // 2, 4, 12, [*0, 15, 13, 10], 9, 14, 8, 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 6);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 0);
+    ++it;
+
+    // 2, 4, 12, 0, [15, 13, 10, *9], 14, 8, 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 7);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::left_window);
+    EXPECT_EQ(minimiser_window.min(), 9);
+    ++it;
+
+    // 2, 4, 12, 0, 15, [13, 10, *9, 14], 8, 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 8);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 9);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, [10, 9, 14, *8], 3, 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 9);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 8);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, 10, [9, 14, 8, *3], 1, 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 10);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 3);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, [14, 8, 3, *1], 5, 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 11);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::new_minimizer);
+    EXPECT_EQ(minimiser_window.min(), 1);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, [8, 3, *1, 5], 11, 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 12);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 1);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, [3, *1, 5, 11], 7, 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 13);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 1);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, [*1, 5, 11, 7], 6
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 14);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::unchanged);
+    EXPECT_EQ(minimiser_window.min(), 1);
+    ++it;
+
+    // 2, 4, 12, 0, 15, 13, 10, 9, 14, 8, 3, 1, [*5, 11, 7, 6]
+    EXPECT_NE(it, values.end());
+    EXPECT_EQ(it - values.begin(), 15);
+    EXPECT_EQ(minimiser_window.cyclic_push(*it), minimiser_state::left_window);
+    EXPECT_EQ(minimiser_window.min(), 5);
+    ++it;
+
+    EXPECT_EQ(it, values.end());
+}
+
 // TYPED_TEST(minimiser_window_test, same_sequence)
 // {
 //     std::vector<int> values{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
