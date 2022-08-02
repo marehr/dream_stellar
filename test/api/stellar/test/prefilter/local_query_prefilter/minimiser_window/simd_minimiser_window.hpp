@@ -62,6 +62,8 @@ struct simd_minimiser_window
         };
         print_chunked(values_t{it, sentinel}, window_size);
 
+        assert(sentinel - it < forward_minimizer.size());
+
         compute_forward_full(window_size, &*it, forward_minimizer.begin(), forward_minimizer.size(), forward_minimizer_offset.data());
         std::cout << "forward_minimizer: " << std::endl;
         print_chunked(forward_minimizer, window_size - 1);
