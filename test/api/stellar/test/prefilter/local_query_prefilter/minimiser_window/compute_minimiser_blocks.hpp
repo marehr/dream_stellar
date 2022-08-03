@@ -32,7 +32,7 @@ void compute_backward_chunk(size_t const window_size, int const * __restrict sou
     size_t current_offset = 0;
     for (size_t offset = 0; offset < window_size; ++offset, ++source_ptr, ++target_ptr, ++offset_ptr)
     {
-        bool smaller = *source_ptr < current_minimiser;
+        bool smaller = *source_ptr <= current_minimiser;
         current_minimiser = smaller ? *source_ptr : current_minimiser;
         current_offset = smaller ? offset : current_offset;
         *target_ptr = current_minimiser;
