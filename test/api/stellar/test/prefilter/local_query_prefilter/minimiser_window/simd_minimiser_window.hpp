@@ -152,11 +152,12 @@ struct simd_minimiser_window
 
         bool forward_is_smaller_than_backward = *chunk_state.forward_it < *chunk_state.backward_it;
         value_t new_minimizer = forward_is_smaller_than_backward ? *chunk_state.forward_it : *chunk_state.backward_it;
+        index_t new_minimizer_position = forward_is_smaller_than_backward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
+
         bool minimiser_left_window = (position > chunk_state.minimiser_position);
         bool minimiser_changed = minimiser_left_window || new_minimizer != chunk_state.minimiser;
         chunk_state.minimiser = new_minimizer;
         // bool minimiser_in_forward = forward_is_smaller_than_backward;
-        index_t new_minimizer_position = forward_is_smaller_than_backward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
         chunk_state.minimiser_position = minimiser_changed ? new_minimizer_position : chunk_state.minimiser_position;
         // std::cout << "cyclic_push::minimiser_position_changed: " << (minimiser_position_changed ? "true" : "false") << std::endl;
         std::cout << "cyclic_push::minimiser is in : " << (forward_is_smaller_than_backward ? "forward" : "backward") << std::endl;
