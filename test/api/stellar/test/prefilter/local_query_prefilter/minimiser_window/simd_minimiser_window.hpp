@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include <array>
 #include <cmath>
+#include <vector>
 
 #include <stellar/test/prefilter/local_query_prefilter/minimiser_window/minimiser_state.hpp>
 
@@ -19,10 +19,12 @@ struct simd_minimiser_window
 
     using index_t = value_t;
 
-    std::array<value_t, 20> forward_minimizer{};
-    std::array<index_t, 20> forward_minimizer_offset{};
-    std::array<value_t, 20> backward_minimizer{};
-    std::array<index_t, 20> backward_minimizer_offset{};
+    std::vector<value_t> _memory{};
+
+    std::span<value_t> forward_minimizer{};
+    std::span<index_t> forward_minimizer_offset{};
+    std::span<value_t> backward_minimizer{};
+    std::span<index_t> backward_minimizer_offset{};
 
     struct chunk_state_t
     {
@@ -62,14 +64,21 @@ struct simd_minimiser_window
         };
         print_chunked(values_t{it, sentinel}, window_size);
 
+        size_t size = (sentinel - it) + 1;
+        _memory.reserve(4 * size);
+        forward_minimizer = {_memory.data(), size};
+        forward_minimizer_offset = {_memory.data() + size, size};
+        backward_minimizer = {_memory.data() + 2 * size, size};
+        backward_minimizer_offset = {_memory.data() + 3 * size, size};
+
         assert(sentinel - it < forward_minimizer.size());
 
-        compute_forward_full(window_size, &*it, forward_minimizer.begin(), forward_minimizer.size(), forward_minimizer_offset.data());
+        compute_forward_full(window_size, &*it, forward_minimizer.data(), forward_minimizer.size(), forward_minimizer_offset.data());
         std::cout << "forward_minimizer: " << std::endl;
         print_chunked(forward_minimizer, window_size - 1);
         std::cout << "forward_minimizer_offset: " << std::endl;
         print_chunked(forward_minimizer_offset, window_size - 1);
-        compute_backward_full(window_size, &*it, backward_minimizer.begin(), backward_minimizer.size(), backward_minimizer_offset.data());
+        compute_backward_full(window_size, &*it, backward_minimizer.data(), backward_minimizer.size(), backward_minimizer_offset.data());
         std::cout << "backward_minimizer: " << std::endl;
         print_chunked(backward_minimizer, window_size - 1);
         std::cout << "backward_minimizer_offset: " << std::endl;
