@@ -35,7 +35,7 @@ struct simd_minimiser_window
         index_t * backward_offset_it;
         value_t minimiser{};
         index_t minimiser_position{};
-        bool minimiser_in_forward{false};
+        // bool minimiser_in_forward{false};
     };
 
 
@@ -95,9 +95,9 @@ struct simd_minimiser_window
         print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size - 1);
         std::cout << "initialize::backward_minimser: ||=" << (chunk_size) << std::endl;
         print_chunked(std::span(chunk_state.backward_it, chunk_size), window_size - 1);
-        chunk_state.minimiser_in_forward = *chunk_state.forward_it < *chunk_state.backward_it;
-        chunk_state.minimiser_position = chunk_state.minimiser_in_forward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
-        chunk_state.minimiser = std::min(*chunk_state.forward_it, *chunk_state.backward_it);
+        bool minimiser_in_forward = *chunk_state.forward_it < *chunk_state.backward_it;
+        chunk_state.minimiser_position = minimiser_in_forward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
+        chunk_state.minimiser = minimiser_in_forward ? *chunk_state.forward_it : *chunk_state.backward_it;
         return begin + window_size - 1;
     }
 
@@ -142,28 +142,27 @@ struct simd_minimiser_window
         print_chunked(std::span(chunk_state.backward_offset_it, chunk_size), window_size - 1);
 
         std::ptrdiff_t position = window_size - 1 - chunk_size;
-        bool forward_left_window = *(chunk_state.forward_offset_it-1) != *chunk_state.forward_offset_it;
-        bool backward_left_window = *(chunk_state.backward_offset_it-1) != *chunk_state.backward_offset_it;
+        // bool forward_left_window = *(chunk_state.forward_offset_it-1) != *chunk_state.forward_offset_it;
+        // bool backward_left_window = *(chunk_state.backward_offset_it-1) != *chunk_state.backward_offset_it;
         std::cout << "cyclic_push::position: " << position << std::endl;
         std::cout << "cyclic_push::minimiser_position: " << chunk_state.minimiser_position << std::endl;
         std::cout << "cyclic_push::new_chunk: " << (new_chunk ? "true" : "false") << std::endl;
-        std::cout << "cyclic_push::forward_left_window: " << (forward_left_window ? "true" : "false") << std::endl;
-        std::cout << "cyclic_push::backward_left_window: " << (backward_left_window ? "true" : "false") << std::endl;
+        // std::cout << "cyclic_push::forward_left_window: " << (forward_left_window ? "true" : "false") << std::endl;
+        // std::cout << "cyclic_push::backward_left_window: " << (backward_left_window ? "true" : "false") << std::endl;
 
         bool forward_is_smaller_than_backward = *chunk_state.forward_it < *chunk_state.backward_it;
         value_t new_minimizer = forward_is_smaller_than_backward ? *chunk_state.forward_it : *chunk_state.backward_it;
-        bool minimiser_position_changed = (position > chunk_state.minimiser_position);
-        bool minimiser_left_window = minimiser_position_changed; // && ((chunk_state.minimiser_in_forward && forward_left_window) || (!chunk_state.minimiser_in_forward && backward_left_window));
+        bool minimiser_left_window = (position > chunk_state.minimiser_position);
         bool minimiser_changed = minimiser_left_window || new_minimizer != chunk_state.minimiser;
         chunk_state.minimiser = new_minimizer;
-        chunk_state.minimiser_in_forward = minimiser_changed ? forward_is_smaller_than_backward : chunk_state.minimiser_in_forward;
+        // bool minimiser_in_forward = forward_is_smaller_than_backward;
         index_t new_minimizer_position = forward_is_smaller_than_backward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
         chunk_state.minimiser_position = minimiser_changed ? new_minimizer_position : chunk_state.minimiser_position;
-        std::cout << "cyclic_push::minimiser_position_changed: " << (minimiser_position_changed ? "true" : "false") << std::endl;
+        // std::cout << "cyclic_push::minimiser_position_changed: " << (minimiser_position_changed ? "true" : "false") << std::endl;
         std::cout << "cyclic_push::minimiser is in : " << (forward_is_smaller_than_backward ? "forward" : "backward") << std::endl;
         std::cout << "cyclic_push::minimiser_changed: " << (minimiser_changed ? "true" : "false") << std::endl;
         std::cout << "cyclic_push::minimiser_left_window: " << (minimiser_left_window ? "true" : "false") << std::endl;
-        std::cout << "cyclic_push::minimiser_in_forward: " << (chunk_state.minimiser_in_forward ? "true" : "false") << std::endl;
+        // std::cout << "cyclic_push::minimiser_in_forward: " << (minimiser_in_forward ? "true" : "false") << std::endl;
         std::cout << "cyclic_push::minimiser_position: " << chunk_state.minimiser_position << std::endl;
         std::cout << "cyclic_push::minimiser: " << chunk_state.minimiser << std::endl;
 
