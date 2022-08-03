@@ -9,6 +9,10 @@
 #include "compute_minimiser_blocks.hpp"
 #include "diagnostics.hpp"
 
+#ifndef NDEBUG
+// #define SIMD_MINIMISER_WINDOW_DEBUG
+#endif
+
 namespace stellar::test
 {
 
@@ -45,24 +49,10 @@ struct simd_minimiser_window
     iterator_t initialize(iterator_t it, iterator_t sentinel)
     {
         iterator_t begin = it;
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         std::cout << "values: " << std::endl;
-
-        struct values_t
-        {
-            iterator_t it;
-            iterator_t sentinel;
-
-            size_t size() const
-            {
-                return sentinel - it;
-            }
-
-            value_t const * data() const
-            {
-                return &*it;
-            }
-        };
-        print_chunked(values_t{it, sentinel}, window_size);
+        print_chunked(std::span{it, sentinel}, window_size);
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
 
         size_t size = (sentinel - it) + 1;
         _memory.reserve(4 * size);
@@ -71,18 +61,21 @@ struct simd_minimiser_window
         backward_minimizer = {_memory.data() + 2 * size, size};
         backward_minimizer_offset = {_memory.data() + 3 * size, size};
 
-        assert(sentinel - it < forward_minimizer.size());
+        assert(sentinel - it < static_cast<std::ptrdiff_t>(forward_minimizer.size()));
 
         compute_forward_full(window_size, &*it, forward_minimizer.data(), forward_minimizer.size(), forward_minimizer_offset.data());
+        compute_backward_full(window_size, &*it, backward_minimizer.data(), backward_minimizer.size(), backward_minimizer_offset.data());
+
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         std::cout << "forward_minimizer: " << std::endl;
         print_chunked(forward_minimizer, window_size - 1);
         std::cout << "forward_minimizer_offset: " << std::endl;
         print_chunked(forward_minimizer_offset, window_size - 1);
-        compute_backward_full(window_size, &*it, backward_minimizer.data(), backward_minimizer.size(), backward_minimizer_offset.data());
         std::cout << "backward_minimizer: " << std::endl;
         print_chunked(backward_minimizer, window_size - 1);
         std::cout << "backward_minimizer_offset: " << std::endl;
         print_chunked(backward_minimizer_offset, window_size - 1);
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
 
         chunk_state.forward_it = forward_minimizer.data();
         chunk_state.forward_end = chunk_state.forward_it + window_size - 1;
@@ -90,11 +83,16 @@ struct simd_minimiser_window
         chunk_state.forward_offset_it = forward_minimizer_offset.data();
         chunk_state.backward_offset_it = backward_minimizer_offset.data() + window_size - 1;
 
+
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         size_t chunk_size = window_size - 1;
+
         std::cout << "initialize::forward_minimser: ||=" << (chunk_size) << std::endl;
         print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size - 1);
         std::cout << "initialize::backward_minimser: ||=" << (chunk_size) << std::endl;
         print_chunked(std::span(chunk_state.backward_it, chunk_size), window_size - 1);
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
+
         bool minimiser_in_forward = *chunk_state.forward_it < *chunk_state.backward_it;
         chunk_state.minimiser_position = minimiser_in_forward ? *chunk_state.forward_offset_it : window_size - 1 + *chunk_state.backward_offset_it;
         chunk_state.minimiser = minimiser_in_forward ? *chunk_state.forward_it : *chunk_state.backward_it;
@@ -106,13 +104,14 @@ struct simd_minimiser_window
         return chunk_state.minimiser;
     }
 
-    minimiser_state cyclic_push(value_t const new_value)
+    minimiser_state cyclic_push([[maybe_unused]] value_t const new_value)
     {
         ++chunk_state.forward_it;
         ++chunk_state.backward_it;
         ++chunk_state.forward_offset_it;
         ++chunk_state.backward_offset_it;
 
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         std::cout << "forward_minimizer: " << std::endl;
         print_chunked(forward_minimizer, window_size - 1);
         std::cout << "forward_minimizer_offset: " << std::endl;
@@ -121,17 +120,23 @@ struct simd_minimiser_window
         print_chunked(backward_minimizer, window_size - 1);
         std::cout << "backward_minimizer_offset: " << std::endl;
         print_chunked(backward_minimizer_offset, window_size - 1);
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
 
         bool new_chunk = chunk_state.forward_it == chunk_state.forward_end;
         if (new_chunk)
         {
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
             std::cout << "cyclic_push::rechunk: " << std::endl;
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
+
             chunk_state.forward_end += window_size - 1;
             chunk_state.minimiser_position -= window_size - 1;
         }
 
         std::ptrdiff_t chunk_size = (chunk_state.forward_end - chunk_state.forward_it);
         assert(chunk_size >= 0);
+
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         std::cout << "cyclic_push::forward_minimser: ||=" << (chunk_size) << std::endl;
         print_chunked(std::span(chunk_state.forward_it, chunk_size), window_size - 1);
         std::cout << "cyclic_push::forward_minimser_offset: ||=" << (chunk_size) << std::endl;
@@ -140,8 +145,11 @@ struct simd_minimiser_window
         print_chunked(std::span(chunk_state.backward_it, chunk_size), window_size - 1);
         std::cout << "cyclic_push::backward_minimser_offset: ||=" << (chunk_size) << std::endl;
         print_chunked(std::span(chunk_state.backward_offset_it, chunk_size), window_size - 1);
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
 
         std::ptrdiff_t position = window_size - 1 - chunk_size;
+
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         // bool forward_left_window = *(chunk_state.forward_offset_it-1) != *chunk_state.forward_offset_it;
         // bool backward_left_window = *(chunk_state.backward_offset_it-1) != *chunk_state.backward_offset_it;
         std::cout << "cyclic_push::position: " << position << std::endl;
@@ -149,6 +157,7 @@ struct simd_minimiser_window
         std::cout << "cyclic_push::new_chunk: " << (new_chunk ? "true" : "false") << std::endl;
         // std::cout << "cyclic_push::forward_left_window: " << (forward_left_window ? "true" : "false") << std::endl;
         // std::cout << "cyclic_push::backward_left_window: " << (backward_left_window ? "true" : "false") << std::endl;
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
 
         bool forward_is_smaller_than_backward = *chunk_state.forward_it < *chunk_state.backward_it;
         value_t new_minimizer = forward_is_smaller_than_backward ? *chunk_state.forward_it : *chunk_state.backward_it;
@@ -159,6 +168,8 @@ struct simd_minimiser_window
         chunk_state.minimiser = new_minimizer;
         // bool minimiser_in_forward = forward_is_smaller_than_backward;
         chunk_state.minimiser_position = minimiser_changed ? new_minimizer_position : chunk_state.minimiser_position;
+
+#ifdef SIMD_MINIMISER_WINDOW_DEBUG
         // std::cout << "cyclic_push::minimiser_position_changed: " << (minimiser_position_changed ? "true" : "false") << std::endl;
         std::cout << "cyclic_push::minimiser is in : " << (forward_is_smaller_than_backward ? "forward" : "backward") << std::endl;
         std::cout << "cyclic_push::minimiser_changed: " << (minimiser_changed ? "true" : "false") << std::endl;
@@ -166,6 +177,7 @@ struct simd_minimiser_window
         // std::cout << "cyclic_push::minimiser_in_forward: " << (minimiser_in_forward ? "true" : "false") << std::endl;
         std::cout << "cyclic_push::minimiser_position: " << chunk_state.minimiser_position << std::endl;
         std::cout << "cyclic_push::minimiser: " << chunk_state.minimiser << std::endl;
+#endif // SIMD_MINIMISER_WINDOW_DEBUG
 
         if (minimiser_left_window)
             return minimiser_state::left_window;
@@ -188,7 +200,7 @@ void minimiser_test()
 
     simd_minimiser_window<int> minimiser_window{4};
 
-    auto it = minimiser_window.initialize(std::begin(values), std::end(values));
+    minimiser_window.initialize(std::begin(values), std::end(values));
 
     std::cout << "~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     std::cout << "[2, 4, 12, *0], 15, 13, 10, 9, 14, 8, 3, 1, 5, 11, 7, 6" << std::endl;
