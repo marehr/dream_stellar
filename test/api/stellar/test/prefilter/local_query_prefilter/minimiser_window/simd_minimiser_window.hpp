@@ -126,8 +126,8 @@ struct simd_minimiser_window
         if (new_chunk)
         {
             std::cout << "cyclic_push::rechunk: " << std::endl;
-            chunk_state.forward_end = chunk_state.forward_it + window_size - 1;
-            chunk_state.minimiser_position = chunk_state.minimiser_in_forward ? -1 : chunk_state.minimiser_position - window_size + 1;
+            chunk_state.forward_end += window_size - 1;
+            chunk_state.minimiser_position -= window_size - 1;
         }
 
         std::ptrdiff_t chunk_size = (chunk_state.forward_end - chunk_state.forward_it);
