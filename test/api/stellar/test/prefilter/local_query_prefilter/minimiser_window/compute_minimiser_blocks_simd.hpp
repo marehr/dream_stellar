@@ -11,9 +11,15 @@
 namespace stellar::test
 {
 
+template <typename simd_t>
+constexpr size_t simd_length = sizeof(simd_t) / sizeof(int);
+
 constexpr size_t simd_len = 8;
 using int32x8_t [[gnu::vector_size(sizeof(int) * simd_len)]] = int;
 using int32x8_mask_t = int32x8_t;
+
+using int32x4_t [[gnu::vector_size(sizeof(int) * 4)]] = int;
+using int32x4_mask_t = int32x4_t;
 
 template <typename simd_t>
 inline simd_t simd_set(int offset)

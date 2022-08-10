@@ -15,6 +15,56 @@ using namespace stellar::test;
 
 #include <bitset>
 
+template <typename simd_t>
+bool simd_equal(simd_t value, simd_t expected)
+{
+    size_t equal_counter = 0;
+    for (size_t i = 0; i < simd_length<simd_t>; ++i)
+        equal_counter += (value[i] == expected[i] ? 1 : 0);
+    return equal_counter == simd_length<simd_t>;
+};
+
+void transpose_matrix_32x4x4_sse4(std::array<int32x4_t, 4> & matrix)
+{
+    __m128 tmp3, tmp2, tmp1, tmp0;
+    tmp0 = _mm_unpacklo_ps((__m128)matrix[0], (__m128)matrix[1]);
+    tmp2 = _mm_unpacklo_ps((__m128)matrix[2], (__m128)matrix[3]);
+    tmp1 = _mm_unpackhi_ps((__m128)matrix[0], (__m128)matrix[1]);
+    tmp3 = _mm_unpackhi_ps((__m128)matrix[2], (__m128)matrix[3]);
+    matrix[0] = (int32x4_t)_mm_movelh_ps(tmp0, tmp2);
+    matrix[1] = (int32x4_t)_mm_movehl_ps(tmp2, tmp0);
+    matrix[2] = (int32x4_t)_mm_movelh_ps(tmp1, tmp3);
+    matrix[3] = (int32x4_t)_mm_movehl_ps(tmp3, tmp1);
+}
+
+template <auto transpose_matrix_fn>
+void transpose_matrix128_epi32_test()
+{
+    {
+        std::array<int32x4_t, 4> matrix{};
+        transpose_matrix_fn(matrix);
+        assert(simd_equal(matrix[0], int32x4_t{}));
+        assert(simd_equal(matrix[1], int32x4_t{}));
+        assert(simd_equal(matrix[2], int32x4_t{}));
+        assert(simd_equal(matrix[3], int32x4_t{}));
+    }
+
+    {
+        std::array<int32x4_t, 4> matrix
+        {
+            int32x4_t{ 0,  1,  2,  3},
+            int32x4_t{ 4,  5,  6,  7},
+            int32x4_t{ 8,  9, 10, 11},
+            int32x4_t{12, 13, 14, 15}
+        };
+        transpose_matrix_fn(matrix);
+        assert(simd_equal(matrix[0], int32x4_t{0, 4, 8, 12}));
+        assert(simd_equal(matrix[1], int32x4_t{1, 5, 9, 13}));
+        assert(simd_equal(matrix[2], int32x4_t{2, 6, 10, 14}));
+        assert(simd_equal(matrix[3], int32x4_t{3, 7, 11, 15}));
+    }
+}
+
 void shuffle_test()
 {
     __m256i a = _mm256_set_epi32(100, 101, 102, 103, 104, 105, 106, 107);
@@ -216,11 +266,7 @@ int32x8_t simd_mask_compress(uint8_t const mask, int32x8_t const src)
 void simd_mask_compress_test()
 {
     int32x8_t values{100, 200, 300, 400, 500, 600, 700, 800};
-    auto simd_equal = [](auto value, auto expected)
-    {
-        auto mask = value == expected;
-        return simd_mask(mask) == 255;
-    };
+
     assert(simd_equal(simd_mask_compress(0b0000'0000, values), int32x8_t{100, 100, 100, 100, 100, 100, 100, 100}));
     assert(simd_equal(simd_mask_compress(0b0000'0001, values), int32x8_t{100, 100, 100, 100, 100, 100, 100, 100}));
     assert(simd_equal(simd_mask_compress(0b0000'0010, values), int32x8_t{200, 100, 100, 100, 100, 100, 100, 100}));
@@ -239,10 +285,16 @@ void simd_mask_compress_test()
 
 int main()
 {
+    std::cout << "simd_mask_test" << std::endl;
     simd_mask_test();
+    std::cout << "shuffle_test" << std::endl;
     shuffle_test();
+    std::cout << "simd_mask_compress_test" << std::endl;
     simd_mask_compress_test();
+    std::cout << "_mask_compress_lookup_test" << std::endl;
     _mask_compress_lookup_test();
+    std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_sse4>" << std::endl;
+    transpose_matrix128_epi32_test<transpose_matrix_32x4x4_sse4>();
 
     // gather_test();
     // compute_minimiser_blocks_test<compute_forward_full, compute_backward_full>();
