@@ -24,7 +24,24 @@ bool simd_equal(simd_t value, simd_t expected)
     return equal_counter == simd_length<simd_t>;
 };
 
-void transpose_matrix_32x4x4_sse4(std::array<int32x4_t, 4> & matrix)
+void transpose_matrix_32x4x4_omp(std::array<int32x4_t, 4> & matrix)
+{
+    #pragma omp simd
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < i; ++j)
+        {
+            // std::cout << "M[" << i << "," << j << "]: " << matrix[i][j];
+            // std::cout << " <-> M[" << j << "," << i << "]: " << matrix[j][i] << std::endl;
+            int32_t tmp1 = matrix[i][j];
+            int32_t tmp2 = matrix[j][i];
+            matrix[i][j] = tmp2;
+            matrix[j][i] = tmp1;
+        }
+    }
+}
+
+void transpose_matrix_32x4x4_sse4(std::span<int32x4_t, 4> matrix)
 {
     __m128 tmp3, tmp2, tmp1, tmp0;
     tmp0 = _mm_unpacklo_ps((__m128)matrix[0], (__m128)matrix[1]);
@@ -35,6 +52,53 @@ void transpose_matrix_32x4x4_sse4(std::array<int32x4_t, 4> & matrix)
     matrix[1] = (int32x4_t)_mm_movehl_ps(tmp2, tmp0);
     matrix[2] = (int32x4_t)_mm_movelh_ps(tmp1, tmp3);
     matrix[3] = (int32x4_t)_mm_movehl_ps(tmp3, tmp1);
+}
+
+void transpose_matrix_32x4x4_avx2(std::span<int32x4_t, 4> matrix)
+{
+    // std::cout << "matrix: " << std::endl;
+    // print_simd(matrix[0], 4);
+    // print_simd(matrix[1], 4);
+    // print_simd(matrix[2], 4);
+    // print_simd(matrix[3], 4);
+    __m256i * matrix_data = reinterpret_cast<__m256i *>(matrix.data());
+    __m256i row01 = _mm256_loadu_si256(matrix_data);
+    __m256i row23 = _mm256_loadu_si256(matrix_data + 1);
+    // __m256i row01 = _mm256_set_m128i((__m128i)matrix[1], (__m128i)matrix[0]);
+    // __m256i row23 = _mm256_set_m128i((__m128i)matrix[3], (__m128i)matrix[2]);
+    // print_simd(row01, 8);
+    // print_simd(row23, 8);
+
+    __m256i tmp01 = _mm256_unpacklo_epi32(row01, row23);
+    __m256i tmp23 = _mm256_unpackhi_epi32(row01, row23);
+    // std::cout << "tmp01/tmp23: " << std::endl;
+    // print_simd(tmp01, 8);
+    // print_simd(tmp23, 8);
+
+    __m256i shuffleCells = (__m256i)int32x8_t{0, 4, 1, 5, 2, 6, 3, 7};
+    row01 = _mm256_permutevar8x32_epi32(tmp01, shuffleCells);
+    row23 = _mm256_permutevar8x32_epi32(tmp23, shuffleCells);
+
+    // row01 = _mm256_shuffle_epi32(tmp01, 0b0000'0011);
+    // std::cout << "row01/row23: " << std::endl;
+    // print_simd(row01, 8);
+    // print_simd(row23, 8);
+    // // __m128 tmp3, tmp2, tmp1, tmp0;
+    // tmp0 = _mm_unpacklo_ps((__m128)matrix[0], (__m128)matrix[1]);
+    // tmp2 = _mm_unpacklo_ps((__m128)matrix[2], (__m128)matrix[3]);
+    // tmp1 = _mm_unpackhi_ps((__m128)matrix[0], (__m128)matrix[1]);
+    // tmp3 = _mm_unpackhi_ps((__m128)matrix[2], (__m128)matrix[3]);
+    // matrix[0] = (int32x4_t)_mm256_extractf128_si256(row01, 0);
+    // matrix[1] = (int32x4_t)_mm256_extractf128_si256(row01, 1);
+    // matrix[2] = (int32x4_t)_mm256_extractf128_si256(row23, 0);
+    // matrix[3] = (int32x4_t)_mm256_extractf128_si256(row23, 1);
+    _mm256_storeu_si256(matrix_data, row01);
+    _mm256_storeu_si256(matrix_data + 1, row23);
+    // std::cout << "matrix: " << std::endl;
+    // print_simd(matrix[0], 4);
+    // print_simd(matrix[1], 4);
+    // print_simd(matrix[2], 4);
+    // print_simd(matrix[3], 4);
 }
 
 template <auto transpose_matrix_fn>
@@ -295,6 +359,10 @@ int main()
     _mask_compress_lookup_test();
     std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_sse4>" << std::endl;
     transpose_matrix128_epi32_test<transpose_matrix_32x4x4_sse4>();
+    std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_avx2>" << std::endl;
+    transpose_matrix128_epi32_test<transpose_matrix_32x4x4_avx2>();
+    std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_omp>" << std::endl;
+    transpose_matrix128_epi32_test<transpose_matrix_32x4x4_omp>();
 
     // gather_test();
     // compute_minimiser_blocks_test<compute_forward_full, compute_backward_full>();
