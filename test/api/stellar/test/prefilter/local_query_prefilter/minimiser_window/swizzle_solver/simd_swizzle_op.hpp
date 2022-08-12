@@ -121,5 +121,6 @@ struct simd_swizzle_op
 using simd_swizzle_opv = std::variant<
     simd_swizzle_op<argument_m256i, argument_any_m256i, argument_imm8>,
     simd_swizzle_op<argument_m256i, argument_m256i, argument_imm8>,
-    simd_swizzle_op<argument_m256i, argument_imm8, argument_none>//,
+    simd_swizzle_op<argument_m256i, argument_imm8, argument_none>,
+    simd_swizzle_op<argument_m256i, argument_m256i, argument_none>//,
 >;

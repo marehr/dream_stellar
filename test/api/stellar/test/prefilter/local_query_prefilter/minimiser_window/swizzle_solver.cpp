@@ -12,4 +12,5 @@ int main()
     simd_swizzle_solver_identity_test(all_transitions);
     simd_swizzle_solver_permute2f128_si256_test(all_transitions);
     simd_swizzle_solver_shuffle_epi32_test(all_transitions);
+    simd_swizzle_solver__mm256_unpackhi_epi32_test(all_transitions);
 }

@@ -12,7 +12,7 @@ struct simd_swizzle_state_rules
     simd_swizzle_state_rules(simd_swizzle_state_rules const &) = default;
 
     template <typename ...args_t>
-        requires (sizeof...(args_t) > 1)
+        requires (sizeof...(args_t) > 0) && (std::is_convertible_v<args_t, simd_swizzle_opv> && ...)
     simd_swizzle_state_rules(args_t && ...args)
         : transitions{simd_swizzle_opv{std::forward<args_t>(args)}...}
     {}

@@ -3,6 +3,7 @@
 
 #include "permute2f128_si256_transitions.hpp"
 #include "shuffle_epi32_transitions.hpp"
+#include "_mm256_unpackhi_epi32.hpp"
 
 // YES:
 // __m256i _mm256_blend_epi32 (__m256i a, __m256i b, const int imm8) vpblendd
@@ -98,6 +99,7 @@ simd_swizzle_state_rules all_transitions{[]()
         );
     };
 
+    append(_mm256_unpackhi_epi32_transitions);
     append(permute2f128_si256_transitions);
     append(shuffle_epi32_transitions);
 
