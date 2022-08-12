@@ -3,8 +3,8 @@
 
 #include "../simd_swizzle_state_rules.hpp"
 
-simd_swizzle_state_rules shuffle_epi32_transitions{
-    // ------ shuffle_epi32 ------
+simd_swizzle_state_rules _mm256_shuffle_epi32_transitions{
+    // ------ _mm256_shuffle_epi32 ------
     simd_swizzle_op{{0, 0, 0, 0,/*|*/ 4, 4, 4, 4}, "_mm256_shuffle_epi32", argument_m256i{}, argument_imm8{0b0000'0000}, argument_none{}},
     simd_swizzle_op{{1, 0, 0, 0,/*|*/ 5, 4, 4, 4}, "_mm256_shuffle_epi32", argument_m256i{}, argument_imm8{0b0000'0001}, argument_none{}},
     simd_swizzle_op{{2, 0, 0, 0,/*|*/ 6, 4, 4, 4}, "_mm256_shuffle_epi32", argument_m256i{}, argument_imm8{0b0000'0010}, argument_none{}},

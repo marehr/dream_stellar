@@ -3,8 +3,8 @@
 
 #include "../simd_swizzle_state_rules.hpp"
 
-simd_swizzle_state_rules permute2f128_si256_transitions{
-    // ------ permute2f128_si256 ------
+simd_swizzle_state_rules _mm256_permute2f128_si256_transitions{
+    // ------ _mm256_permute2f128_si256 ------
     /*permute2f128_si256_01: A[0], A[0]*/ simd_swizzle_op{{0, 1, 2, 3,/*|*/ 0, 1, 2, 3}, "_mm256_permutevar8x32_epi32", argument_m256i{}, argument_any_m256i{}, argument_imm8{0x00}},
     // /*permute2f128_si256_02: A[0], A[1]*/ simd_swizzle_op{{0, 1, 2, 3,/*|*/ 4, 5, 6, 7}, "_mm256_permutevar8x32_epi32", argument_m256i{}, argument_any_m256i{}, argument_imm8{0x10}},
     /*permute2f128_si256_03: A[0], B[0]*/ simd_swizzle_op{{0, 1, 2, 3,/*|*/ 8, 9, 10, 11}, "_mm256_permutevar8x32_epi32", argument_m256i{}, argument_m256i{}, argument_imm8{0x20}},
@@ -30,7 +30,7 @@ template <size_t count> struct simd_swizzle_solver;
 template <template <size_t> typename simd_swizzle_solver_t = simd_swizzle_solver, template <size_t> typename simd_vars_t = simd_vars>
 void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
 {
-    // permute2f128_si256_0x00
+    // _mm256_permute2f128_si256_0x00
     {
         auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
@@ -48,7 +48,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<1>{0, 1, 2, 3, 0, 1, 2, 3}));
     }
 
-    // permute2f128_si256_0x01
+    // _mm256_permute2f128_si256_0x01
     {
         auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
@@ -66,7 +66,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<1>{4, 5, 6, 7, 0, 1, 2, 3}));
     }
 
-    // permute2f128_si256_0x11
+    // _mm256_permute2f128_si256_0x11
     {
         auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
@@ -84,7 +84,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<1>{4, 5, 6, 7, 4, 5, 6, 7}));
     }
 
-    // permute2f128_si256_0x20
+    // _mm256_permute2f128_si256_0x20
     {
         std::cout << "~~~~~~~~~~" << std::endl;
         auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
@@ -104,7 +104,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<2>{simd_int32x8{0,1,2,3,8,9,10,11}, simd_int32x8{8,9,10,11,12,13,14,15}}));
     }
 
-    // permute2f128_si256_0x30
+    // _mm256_permute2f128_si256_0x30
     {
         std::cout << "~~~~~~~~~~" << std::endl;
         auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
@@ -124,7 +124,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<2>{simd_int32x8{0, 1, 2, 3, 12, 13, 14, 15}, simd_int32x8{8,9,10,11,12,13,14,15}}));
     }
 
-    // permute2f128_si256_0x31
+    // _mm256_permute2f128_si256_0x31
     {
         std::cout << "~~~~~~~~~~" << std::endl;
         auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
@@ -144,7 +144,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<2>{simd_int32x8{4, 5, 6, 7, 12, 13, 14, 15}, simd_int32x8{8,9,10,11,12,13,14,15}}));
     }
 
-    // permute2f128_si256_0x20 reverse
+    // _mm256_permute2f128_si256_0x20 reverse
     {
         std::cout << "~~~~~~~~~~" << std::endl;
         auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
@@ -164,7 +164,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
         assert((memory == simd_vars_t<2>{simd_int32x8{8, 9, 10, 11, 0, 1, 2, 3}, simd_int32x8{8,9,10,11,12,13,14,15}}));
     }
 
-    // permute2f128_si256_0x21 reverse
+    // _mm256_permute2f128_si256_0x21 reverse
     {
         std::cout << "~~~~~~~~~~" << std::endl;
         auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
