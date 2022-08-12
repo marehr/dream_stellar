@@ -30,7 +30,7 @@ struct simd_vars : public std::array<simd_int32x8, count>
     {
         std::size_t operator()(simd_vars const& var) const noexcept
         {
-            size_t hash;
+            size_t hash{};
             for (simd_int32x8 memory : var)
             {
                 for (int idx : memory)
