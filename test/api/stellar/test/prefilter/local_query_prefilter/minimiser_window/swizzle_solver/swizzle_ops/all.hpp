@@ -102,8 +102,8 @@ simd_swizzle_state_rules all_transitions{[]()
 
     append(_mm256_unpackhi_epi32_transitions);
     append(_mm256_unpacklo_epi32_transitions);
-    append(_mm256_shuffle_epi32_transitions);
-    append(_mm256_permute2f128_si256_transitions);
+    // append(_mm256_shuffle_epi32_transitions);
+    // append(_mm256_permute2f128_si256_transitions);
 
     return _transitions;
 }()};

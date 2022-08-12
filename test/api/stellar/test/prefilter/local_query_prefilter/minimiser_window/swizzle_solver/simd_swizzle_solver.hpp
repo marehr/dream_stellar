@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <unordered_map>
 
 #include "simd_swizzle_op_trace.hpp"
@@ -46,6 +47,7 @@ struct simd_swizzle_solver
 
         // add initial state
         _traces.clear();
+        _traces.reserve(5 * 1024 * 1024 * 1024 / sizeof(simd_swizzle_opv));
         add_state(memory, current_trace);
 
         // std::cout << "memory: " << memory << std::endl;
@@ -62,9 +64,21 @@ struct simd_swizzle_solver
 
             std::cout << i << "): |traces| = " << _traces.size() << std::endl;
 
+            auto start = std::chrono::steady_clock::now();
+            size_t k = 0;
             auto current_traces = _traces;
             for (auto && [old_memory, old_trace] : current_traces)
             {
+                size_t progress = ((k * 100) / (current_traces.size()));
+                size_t progress_tick = ((k * 100) % (current_traces.size()));
+                if (progress_tick < 100){
+                    auto end = std::chrono::steady_clock::now();
+                    std::chrono::duration<double> elapsed_seconds = end-start;
+                    start = end;
+                    std::cout << i << ") " << progress << "/ 100: " << elapsed_seconds.count() << "s" << std::endl;
+                }
+                ++k;
+
                 // std::cout << "old_memory: " << old_memory << std::endl;
                 bool found = apply_transitions(rules, old_memory, old_trace, [&](auto && new_memory, auto && new_trace)
                 {
@@ -85,6 +99,7 @@ struct simd_swizzle_solver
 
                 if (found) break;
             }
+            std::cout << std::endl;
         }
 
         return {memory, current_trace};
@@ -92,7 +107,7 @@ struct simd_swizzle_solver
 
 
 private:
-    bool apply_transitions(
+    static bool apply_transitions(
         simd_swizzle_state_rules const & rules,
         simd_vars<count> const & old_memory,
         simd_swizzle_op_trace const & old_trace,
@@ -105,7 +120,7 @@ private:
         return found;
     }
 
-    bool apply_unary_transitions(
+    static bool apply_unary_transitions(
         simd_swizzle_state_rules const & rules,
         simd_vars<count> const & old_memory,
         simd_swizzle_op_trace const & old_trace,
@@ -148,7 +163,7 @@ private:
         return false;
     }
 
-    bool apply_binary_transitions(
+    static bool apply_binary_transitions(
         simd_swizzle_state_rules const & rules,
         simd_vars<count> const & old_memory,
         simd_swizzle_op_trace const & old_trace,

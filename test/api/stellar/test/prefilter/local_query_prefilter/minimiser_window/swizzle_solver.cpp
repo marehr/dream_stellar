@@ -10,10 +10,10 @@ int main()
 {
     simd_vars_test();
     simd_swizzle_solver_identity_test(all_transitions);
-    simd_swizzle_solver_permute2f128_si256_test(all_transitions);
-    simd_swizzle_solver_shuffle_epi32_test(all_transitions);
-    simd_swizzle_solver__mm256_unpackhi_epi32_test(all_transitions);
-    simd_swizzle_solver__mm256_unpacklo_epi32_test(all_transitions);
+    simd_swizzle_solver_permute2f128_si256_test(_mm256_permute2f128_si256_transitions);
+    simd_swizzle_solver_shuffle_epi32_test(_mm256_shuffle_epi32_transitions);
+    simd_swizzle_solver__mm256_unpackhi_epi32_test(_mm256_unpackhi_epi32_transitions);
+    simd_swizzle_solver__mm256_unpacklo_epi32_test(_mm256_unpacklo_epi32_transitions);
 
     //  0,  1,  2,  3
     //  4,  5,  6,  7
