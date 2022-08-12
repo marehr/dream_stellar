@@ -2,6 +2,7 @@
 #pragma once
 
 #include "permute2f128_si256_transitions.hpp"
+#include "shuffle_epi32_transitions.hpp"
 
 simd_swizzle_state_rules all_transitions{[]()
 {
@@ -16,6 +17,7 @@ simd_swizzle_state_rules all_transitions{[]()
     };
 
     append(permute2f128_si256_transitions);
+    append(shuffle_epi32_transitions);
 
     return _transitions;
 }()};
