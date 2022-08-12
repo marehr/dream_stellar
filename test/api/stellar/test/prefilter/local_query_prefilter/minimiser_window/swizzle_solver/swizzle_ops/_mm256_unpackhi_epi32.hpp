@@ -18,7 +18,7 @@ void simd_swizzle_solver__mm256_unpackhi_epi32_test(auto const & transitions)
 {
     // _mm256_unpackhi_epi32
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
             transitions,
             simd_vars_t<2>::iota(), // start state
             simd_vars_t<1>{2, 10, 3, 11,/*|*/ 6, 14, 7, 15}, // end state

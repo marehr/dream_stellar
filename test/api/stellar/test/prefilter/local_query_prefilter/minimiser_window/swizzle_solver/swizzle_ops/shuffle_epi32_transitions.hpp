@@ -274,7 +274,7 @@ void simd_swizzle_solver_shuffle_epi32_test(auto const & transitions)
 {
     // _mm256_shuffle_epi32_0b0000'0000
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>::iota(), // start state
             simd_vars_t<1>{0, 0, 0, 0,/*|*/ 4, 4, 4, 4}, // end state
@@ -292,7 +292,7 @@ void simd_swizzle_solver_shuffle_epi32_test(auto const & transitions)
 
     // _mm256_shuffle_epi32_0b0111'0101
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>::iota(), // start state
             simd_vars_t<1>{1, 1, 3, 1,/*|*/ 5, 5, 7, 5}, // end state
@@ -310,7 +310,7 @@ void simd_swizzle_solver_shuffle_epi32_test(auto const & transitions)
 
     // _mm256_shuffle_epi32_0b0100'1111
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>::iota(), // start state
             simd_vars_t<1>{3, 3, 0, 1,/*|*/ 7, 7, 4, 5}, // end state

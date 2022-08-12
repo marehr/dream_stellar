@@ -114,7 +114,7 @@ void simd_swizzle_solver_identity_test(auto const & transitions)
 {
     // identity
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>{0, 1, 2, 3, 4, 5, 6, 7}, // start state
             simd_vars_t<1>{0, 1, 2, 3, 4, 5, 6, 7}, // end state

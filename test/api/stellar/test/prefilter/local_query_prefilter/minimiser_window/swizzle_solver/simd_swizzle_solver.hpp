@@ -36,7 +36,7 @@ struct simd_swizzle_solver
     }
 
     template <size_t count2>
-    std::pair<simd_vars<count>, simd_swizzle_op_trace> find(
+    std::pair<simd_vars<count>, simd_swizzle_op_trace> solve(
         simd_swizzle_state_rules const & rules,
         simd_vars<count> memory,
         simd_vars<count2> const & final_memory,

@@ -32,7 +32,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
 {
     // permute2f128_si256_0x00
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>::iota(), // start state
             simd_vars_t<1>{0, 1, 2, 3, 0, 1, 2, 3}, // end state
@@ -50,7 +50,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
 
     // permute2f128_si256_0x01
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>::iota(), // start state
             simd_vars_t<1>{4, 5, 6, 7, 0, 1, 2, 3}, // end state
@@ -68,7 +68,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
 
     // permute2f128_si256_0x11
     {
-        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<1>{}.solve(
             transitions,
             simd_vars_t<1>::iota(), // start state
             simd_vars_t<1>{4, 5, 6, 7, 4, 5, 6, 7}, // end state
@@ -87,7 +87,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
     // permute2f128_si256_0x20
     {
         std::cout << "~~~~~~~~~~" << std::endl;
-        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
             transitions,
             simd_vars_t<2>::iota(), // start state
             simd_vars_t<1>{0, 1, 2, 3, 8, 9, 10, 11}, // end state
@@ -107,7 +107,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
     // permute2f128_si256_0x30
     {
         std::cout << "~~~~~~~~~~" << std::endl;
-        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
             transitions,
             simd_vars_t<2>::iota(), // start state
             simd_vars_t<1>{0, 1, 2, 3, 12, 13, 14, 15}, // end state
@@ -127,7 +127,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
     // permute2f128_si256_0x31
     {
         std::cout << "~~~~~~~~~~" << std::endl;
-        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
             transitions,
             simd_vars_t<2>::iota(), // start state
             simd_vars_t<1>{4, 5, 6, 7, 12, 13, 14, 15}, // end state
@@ -147,7 +147,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
     // permute2f128_si256_0x20 reverse
     {
         std::cout << "~~~~~~~~~~" << std::endl;
-        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
             transitions,
             simd_vars_t<2>::iota(), // start state
             simd_vars_t<1>{8, 9, 10, 11, 0, 1, 2, 3}, // end state
@@ -167,7 +167,7 @@ void simd_swizzle_solver_permute2f128_si256_test(auto const & transitions)
     // permute2f128_si256_0x21 reverse
     {
         std::cout << "~~~~~~~~~~" << std::endl;
-        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.find(
+        auto && [memory, final_state] = simd_swizzle_solver_t<2>{}.solve(
             transitions,
             simd_vars_t<2>::iota(), // start state
             simd_vars_t<1>{12, 13, 14, 15, 0, 1, 2, 3}, // end state
