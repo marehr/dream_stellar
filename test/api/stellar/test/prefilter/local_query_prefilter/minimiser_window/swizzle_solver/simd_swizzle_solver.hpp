@@ -48,8 +48,8 @@ struct simd_swizzle_solver
         _traces.clear();
         add_state(memory, current_trace);
 
-        std::cout << "memory: " << memory << std::endl;
-        std::cout << "_traces.size: " << _traces.size() << std::endl;
+        // std::cout << "memory: " << memory << std::endl;
+        // std::cout << "_traces.size: " << _traces.size() << std::endl;
 
         for (size_t i = 0; i < max_steps; ++i)
         {
@@ -58,12 +58,14 @@ struct simd_swizzle_solver
                 std::cout << "search: " << final_memory << ", FOUND" << std::endl;
                 break;
             }
-            std::cout << "search: " << final_memory << std::endl;
+            // std::cout << "search: " << final_memory << std::endl;
+
+            std::cout << i << "): |traces| = " << _traces.size() << std::endl;
 
             auto current_traces = _traces;
             for (auto && [old_memory, old_trace] : current_traces)
             {
-                std::cout << "old_memory: " << old_memory << std::endl;
+                // std::cout << "old_memory: " << old_memory << std::endl;
                 bool found = apply_transitions(rules, old_memory, old_trace, [&](auto && new_memory, auto && new_trace)
                 {
                     if (new_memory.contains(final_memory))
@@ -73,7 +75,7 @@ struct simd_swizzle_solver
                         std::cout << new_memory << "; " << new_trace << ", found!!!!" << std::endl;
                         return true;
                     }
-                    std::cout << new_memory << "; " << new_trace << std::endl;
+                    // std::cout << new_memory << "; " << new_trace << std::endl;
 
                     if (new_memory.has_at_least_each_once(final_memory))
                         this->add_state(new_memory, new_trace);
