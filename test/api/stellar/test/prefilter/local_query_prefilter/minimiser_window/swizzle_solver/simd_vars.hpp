@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <unordered_map>
 
 #include "simd_int32x.hpp"
