@@ -3,6 +3,7 @@
 
 #include <span>
 
+#include "diagnostics.hpp"
 #include "simd_fn.hpp"
 
 void transpose_matrix_32x4x4_omp(std::span<int32x4_t, 4> matrix)
@@ -180,6 +181,80 @@ void transpose_matrix_32x8x8_avx2(std::span<int32x8_t, 8> matrix)
     // print_simd(matrix[1], 4);
     // print_simd(matrix[2], 4);
     // print_simd(matrix[3], 4);
+}
+
+
+void transpose_matrix_32x6x4_omp(std::span<int32x4_t, 6> matrix)
+{
+    // for (int i = 0; i < 6; ++i)
+    // {
+    //     for (int j = 0; j < 4; ++j)
+    //     {
+    //         std::cout << "M[" << i << "," << j << "]: " << matrix[i][j] << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    // }
+    int * matrix_ptr = reinterpret_cast<int *>(matrix.data());
+    std::array<int, 6 * 4> matrix_cpy;
+    std::copy(matrix_ptr, matrix_ptr + 6 * 4, matrix_cpy.data());
+
+    // for (int i = 0; i < matrix_cpy.size(); ++i)
+    // {
+    //     std::cout << "Mc[" << i << "]: " << matrix_cpy[i] << std::endl;
+    // }
+    // std::cout << std::endl;
+
+    #pragma omp simd
+    for (int i = 0; i < 6; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            matrix[i][j] = matrix_cpy[j * 6 + i];
+            // std::cout << "M[" << i << "," << j << "]: " << matrix_cpy[j * 6 + i] << std::endl;
+        }
+    }
+}
+
+template <auto transpose_matrix_fn>
+void transpose_matrix128_int32x6x4_test()
+{
+    {
+        std::array<int32x4_t, 6> matrix{};
+        transpose_matrix_fn(matrix);
+        assert(simd_equal(matrix[0], int32x4_t{}));
+        assert(simd_equal(matrix[1], int32x4_t{}));
+        assert(simd_equal(matrix[2], int32x4_t{}));
+        assert(simd_equal(matrix[3], int32x4_t{}));
+        assert(simd_equal(matrix[4], int32x4_t{}));
+        assert(simd_equal(matrix[5], int32x4_t{}));
+    }
+
+    {
+        std::array<int, 6 * 4> matrix
+        {
+             0,  1,  2,  3,  4,  5,
+             6,  7,  8,  9, 10, 11,
+            12, 13, 14, 15, 16, 17,
+            18, 19, 20, 21, 22, 23
+        };
+        for (int i = 0; i < matrix.size(); ++i)
+        {
+            std::cout << "M[" << i << "]: " << matrix[i] << std::endl;
+        }
+        std::cout << std::endl;
+
+        int32x4_t * matrix_ptr = reinterpret_cast<int32x4_t *>(matrix.data());
+        std::span<int32x4_t, 6> matrix_span{matrix_ptr, 6};
+
+        transpose_matrix_fn(matrix_span);
+        stellar::test::print_simd(matrix_span[0], 4);
+        assert(simd_equal(matrix_span[0], int32x4_t{0, 6, 12, 18}));
+        assert(simd_equal(matrix_span[1], int32x4_t{1, 7, 13, 19}));
+        assert(simd_equal(matrix_span[2], int32x4_t{2, 8, 14, 20}));
+        assert(simd_equal(matrix_span[3], int32x4_t{3, 9, 15, 21}));
+        assert(simd_equal(matrix_span[4], int32x4_t{4,10, 16, 22}));
+        assert(simd_equal(matrix_span[5], int32x4_t{5,11, 17, 23}));
+    }
 }
 
 template <auto transpose_matrix_fn>

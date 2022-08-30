@@ -252,6 +252,8 @@ int main()
     transpose_matrix128_epi32_test<transpose_matrix_32x4x4_omp>();
     std::cout << "transpose_matrix256_epi32_test<transpose_matrix_32x4x4_omp>" << std::endl;
     transpose_matrix256_epi32_test<transpose_matrix_32x8x8_avx2>();
+    std::cout << "transpose_matrix128_int32x6x4_test<transpose_matrix_32x6x4_omp>" << std::endl;
+    transpose_matrix128_int32x6x4_test<transpose_matrix_32x6x4_omp>();
 
     // gather_test();
     // compute_minimiser_blocks_test<compute_forward_full, compute_backward_full>();
