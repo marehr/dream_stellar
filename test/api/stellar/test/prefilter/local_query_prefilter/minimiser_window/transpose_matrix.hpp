@@ -107,16 +107,12 @@ void transpose_matrix_32x8x8_avx2(std::span<int32x8_t, 8> matrix)
     __m256i b02lo = _mm256_unpacklo_epi32(a0, a2);
     __m256i b13lo = _mm256_unpacklo_epi32(a1, a3);
     __m256i new_row0 = _mm256_unpacklo_epi32(b02lo, b13lo);
-    _mm256_storeu_si256(matrix_data, new_row0);
     __m256i new_row1 = _mm256_unpackhi_epi32(b02lo, b13lo);
-    _mm256_storeu_si256(matrix_data + 1, new_row1);
 
     __m256i b02hi = _mm256_unpackhi_epi32(a0, a2);
     __m256i b13hi = _mm256_unpackhi_epi32(a1, a3);
     __m256i new_row2 = _mm256_unpacklo_epi32(b02hi, b13hi);
-    _mm256_storeu_si256(matrix_data + 2, new_row2);
     __m256i new_row3 = _mm256_unpackhi_epi32(b02hi, b13hi);
-    _mm256_storeu_si256(matrix_data + 3, new_row3);
 
     __m256i a4 = _mm256_permute2f128_si256(row0, row4, 0b0011'0001);
     __m256i a5 = _mm256_permute2f128_si256(row1, row5, 0b0011'0001);
@@ -126,15 +122,20 @@ void transpose_matrix_32x8x8_avx2(std::span<int32x8_t, 8> matrix)
     __m256i b46lo = _mm256_unpacklo_epi32(a4, a6);
     __m256i b57lo = _mm256_unpacklo_epi32(a5, a7);
     __m256i new_row4 = _mm256_unpacklo_epi32(b46lo, b57lo);
-    _mm256_storeu_si256(matrix_data + 4, new_row4);
     __m256i new_row5 = _mm256_unpackhi_epi32(b46lo, b57lo);
-    _mm256_storeu_si256(matrix_data + 5, new_row5);
 
     __m256i b46hi = _mm256_unpackhi_epi32(a4, a6);
     __m256i b57hi = _mm256_unpackhi_epi32(a5, a7);
     __m256i new_row6 = _mm256_unpacklo_epi32(b46hi, b57hi);
-    _mm256_storeu_si256(matrix_data + 6, new_row6);
     __m256i new_row7 = _mm256_unpackhi_epi32(b46hi, b57hi);
+
+    _mm256_storeu_si256(matrix_data, new_row0);
+    _mm256_storeu_si256(matrix_data + 1, new_row1);
+    _mm256_storeu_si256(matrix_data + 2, new_row2);
+    _mm256_storeu_si256(matrix_data + 3, new_row3);
+    _mm256_storeu_si256(matrix_data + 4, new_row4);
+    _mm256_storeu_si256(matrix_data + 5, new_row5);
+    _mm256_storeu_si256(matrix_data + 6, new_row6);
     _mm256_storeu_si256(matrix_data + 7, new_row7);
 
     // print_simd(b02hi, 8);
