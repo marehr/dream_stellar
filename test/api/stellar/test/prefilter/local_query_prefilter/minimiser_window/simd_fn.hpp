@@ -35,3 +35,12 @@ inline void simd_maskstore(int * mem_addr, int32x8_t mask,  int32x8_t a)
 {
     _mm256_maskstore_epi32((int *)mem_addr, (__m256i)mask, (__m256i)a);
 }
+
+template <typename simd_t>
+bool simd_equal(simd_t value, simd_t expected)
+{
+    size_t equal_counter = 0;
+    for (size_t i = 0; i < simd_length<simd_t>; ++i)
+        equal_counter += (value[i] == expected[i] ? 1 : 0);
+    return equal_counter == simd_length<simd_t>;
+};
