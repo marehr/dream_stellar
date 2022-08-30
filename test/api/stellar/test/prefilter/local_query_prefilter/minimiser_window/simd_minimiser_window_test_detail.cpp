@@ -10,7 +10,7 @@
 #include "compute_minimiser_blocks.hpp"
 #include "compute_minimiser_blocks_simd.hpp"
 #include "compute_minimiser_blocks_test.hpp"
-#include "simd_fn.hpp"
+#include "transpose_matrix.hpp"
 
 using namespace stellar::test;
 
