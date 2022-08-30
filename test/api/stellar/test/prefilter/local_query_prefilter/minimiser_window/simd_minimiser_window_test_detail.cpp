@@ -24,7 +24,7 @@ bool simd_equal(simd_t value, simd_t expected)
     return equal_counter == simd_length<simd_t>;
 };
 
-void transpose_matrix_32x4x4_omp(std::array<int32x4_t, 4> & matrix)
+void transpose_matrix_32x4x4_omp(std::span<int32x4_t, 4> matrix)
 {
     #pragma omp simd
     for (int i = 0; i < 4; ++i)
