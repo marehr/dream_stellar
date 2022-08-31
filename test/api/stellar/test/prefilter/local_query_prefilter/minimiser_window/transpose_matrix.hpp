@@ -237,17 +237,11 @@ void transpose_matrix128_int32x6x4_test()
             12, 13, 14, 15, 16, 17,
             18, 19, 20, 21, 22, 23
         };
-        for (int i = 0; i < matrix.size(); ++i)
-        {
-            std::cout << "M[" << i << "]: " << matrix[i] << std::endl;
-        }
-        std::cout << std::endl;
 
         int32x4_t * matrix_ptr = reinterpret_cast<int32x4_t *>(matrix.data());
         std::span<int32x4_t, 6> matrix_span{matrix_ptr, 6};
 
         transpose_matrix_fn(matrix_span);
-        stellar::test::print_simd(matrix_span[0], 4);
         assert(simd_equal(matrix_span[0], int32x4_t{0, 6, 12, 18}));
         assert(simd_equal(matrix_span[1], int32x4_t{1, 7, 13, 19}));
         assert(simd_equal(matrix_span[2], int32x4_t{2, 8, 14, 20}));
