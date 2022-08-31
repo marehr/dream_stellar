@@ -215,6 +215,25 @@ void transpose_matrix_32x6x4_omp(std::span<int32x4_t, 6> matrix)
     }
 }
 
+void transpose_matrix_32x6x4_sse4(std::span<int32x4_t, 6> matrix)
+{
+    __m128 s03_lo = _mm_unpacklo_ps((__m128)matrix[0], (__m128)matrix[3]);
+    __m128 s14_hi = _mm_unpackhi_ps((__m128)matrix[1], (__m128)matrix[4]);
+
+    __m128 s03_hi = _mm_unpackhi_ps((__m128)matrix[0], (__m128)matrix[3]);
+    __m128 s25_lo = _mm_unpacklo_ps((__m128)matrix[2], (__m128)matrix[5]);
+
+    __m128 s14_lo = _mm_unpacklo_ps((__m128)matrix[1], (__m128)matrix[4]);
+    __m128 s25_hi = _mm_unpackhi_ps((__m128)matrix[2], (__m128)matrix[5]);
+
+    matrix[0] = (int32x4_t)_mm_unpacklo_ps(s03_lo, s14_hi);
+    matrix[1] = (int32x4_t)_mm_unpackhi_ps(s03_lo, s14_hi);
+    matrix[2] = (int32x4_t)_mm_unpacklo_ps(s03_hi, s25_lo);
+    matrix[3] = (int32x4_t)_mm_unpackhi_ps(s03_hi, s25_lo);
+    matrix[4] = (int32x4_t)_mm_unpacklo_ps(s14_lo, s25_hi);
+    matrix[5] = (int32x4_t)_mm_unpackhi_ps(s14_lo, s25_hi);
+}
+
 template <auto transpose_matrix_fn>
 void transpose_matrix128_int32x6x4_test()
 {
