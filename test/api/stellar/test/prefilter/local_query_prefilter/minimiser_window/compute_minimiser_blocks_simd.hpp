@@ -6,8 +6,6 @@
 #include <cmath>
 #include <limits>
 
-#include <x86intrin.h>
-
 #include "simd_fn.hpp"
 
 namespace stellar::test

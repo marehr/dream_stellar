@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <x86intrin.h>
 
 template <typename simd_t>
 constexpr size_t simd_length = sizeof(simd_t) / sizeof(int);
