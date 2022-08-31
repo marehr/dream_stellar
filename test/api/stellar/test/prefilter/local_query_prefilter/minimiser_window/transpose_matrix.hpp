@@ -83,6 +83,17 @@ void transpose_matrix_32x4x4_avx2(std::span<int32x4_t, 4> matrix)
     // print_simd(matrix[3], 4);
 }
 
+void transpose_matrix_32x4x4_avx2_gather(std::span<int32x4_t, 4> matrix)
+{
+    int32_t * matrix_data = reinterpret_cast<int32_t *>(matrix.data());
+
+    __m256i new_row0 = _mm256_i32gather_epi32(matrix_data, (__m256i)(int32x8_t{0, 4, 8, 12, 1, 5, 9, 13}), sizeof(int32_t));
+    __m256i new_row1 = _mm256_i32gather_epi32(matrix_data, (__m256i)(int32x8_t{2, 6, 10, 14, 3, 7, 11, 15}), sizeof(int32_t));
+
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data), new_row0);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 1, new_row1);
+}
+
 void transpose_matrix_32x8x8_avx2(std::span<int32x8_t, 8> matrix)
 {
     // std::cout << "matrix: " << std::endl;

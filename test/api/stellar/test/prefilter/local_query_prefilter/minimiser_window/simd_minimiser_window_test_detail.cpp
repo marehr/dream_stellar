@@ -248,6 +248,8 @@ int main()
     transpose_matrix128_epi32_test<transpose_matrix_32x4x4_sse4>();
     std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_avx2>" << std::endl;
     transpose_matrix128_epi32_test<transpose_matrix_32x4x4_avx2>();
+    std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_avx2_gather>" << std::endl;
+    transpose_matrix128_epi32_test<transpose_matrix_32x4x4_avx2_gather>();
     std::cout << "transpose_matrix128_epi32_test<transpose_matrix_32x4x4_omp>" << std::endl;
     transpose_matrix128_epi32_test<transpose_matrix_32x4x4_omp>();
     std::cout << "transpose_matrix256_epi32_test<transpose_matrix_32x4x4_omp>" << std::endl;
