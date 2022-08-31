@@ -234,6 +234,30 @@ void transpose_matrix_32x6x4_sse4(std::span<int32x4_t, 6> matrix)
     matrix[5] = (int32x4_t)_mm_unpackhi_ps(s14_lo, s25_hi);
 }
 
+void transpose_matrix_32x6x4_avx2(std::span<int32x4_t, 6> matrix)
+{
+    __m256i * matrix_data = reinterpret_cast<__m256i *>(matrix.data());
+    __m256i row0 = _mm256_loadu_si256(matrix_data);
+    __m256i row1 = _mm256_loadu_si256(matrix_data + 1);
+    __m256i row2 = _mm256_loadu_si256(matrix_data + 2);
+
+    __m256i s0 = _mm256_blend_epi32(row0, row1, 0b0000'1100);
+    __m256i s1 = _mm256_blend_epi32(row1, row2, 0b0000'1100);
+    __m256i s2 = _mm256_blend_epi32(row2, row0, 0b0000'1100);
+
+    __m256i t0 = _mm256_blend_epi32(s0, s1, 0b0011'1100);
+    __m256i t1 = _mm256_blend_epi32(s1, s2, 0b0011'1100);
+    __m256i t2 = _mm256_blend_epi32(s2, s0, 0b0011'1100);
+
+    __m256i new_row0 = _mm256_permutevar8x32_epi32(t0, (__m256i)int32x8_t{0, 6, 4, 2, 1, 7, 5, 3});
+    __m256i new_row1 = _mm256_permutevar8x32_epi32(t1, (__m256i)int32x8_t{2, 0, 6, 4, 3, 1, 7, 5});
+    __m256i new_row2 = _mm256_permutevar8x32_epi32(t2, (__m256i)int32x8_t{4, 2, 0, 6, 5, 3, 1, 7});
+
+    _mm256_storeu_si256(matrix_data, new_row0);
+    _mm256_storeu_si256(matrix_data + 1, new_row1);
+    _mm256_storeu_si256(matrix_data + 2, new_row2);
+}
+
 template <auto transpose_matrix_fn>
 void transpose_matrix128_int32x6x4_test()
 {
