@@ -31,4 +31,8 @@ int main()
     std::cout << "transpose_matrix_int32x6x4_test<transpose_matrix_32x6x4_avx2_gather>" << std::endl;
     transpose_matrix_int32x6x4_test<transpose_matrix_32x6x4_avx2_gather>();
     std::cout << std::endl;
+
+    std::cout << "transpose_matrix_int32x6x8_test<transpose_matrix_32x6x8_omp>" << std::endl;
+    transpose_matrix_int32x6x8_test<transpose_matrix_32x6x8_omp>();
+    std::cout << std::endl;
 }

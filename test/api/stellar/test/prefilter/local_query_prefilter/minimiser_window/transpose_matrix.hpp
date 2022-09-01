@@ -265,6 +265,22 @@ void transpose_matrix_32x6x4_omp(std::span<int32x4_t, 6> matrix)
     }
 }
 
+void transpose_matrix_32x6x8_omp(std::span<int32x8_t, 6> matrix)
+{
+    int * matrix_ptr = reinterpret_cast<int *>(matrix.data());
+    std::array<int, 6 * 8> matrix_cpy;
+    std::copy(matrix_ptr, matrix_ptr + 6 * 8, matrix_cpy.data());
+
+    #pragma omp simd
+    for (int i = 0; i < 6; ++i)
+    {
+        for (int j = 0; j < 8; ++j)
+        {
+            matrix[i][j] = matrix_cpy[j * 6 + i];
+        }
+    }
+}
+
 void transpose_matrix_32x6x4_sse4(std::span<int32x4_t, 6> matrix)
 {
     __m128 s03_lo = _mm_unpacklo_ps((__m128)matrix[0], (__m128)matrix[3]);
@@ -382,6 +398,47 @@ void transpose_matrix_int32x4x4_test()
         assert(simd_equal(matrix[1], int32x4_t{1, 5, 9, 13}));
         assert(simd_equal(matrix[2], int32x4_t{2, 6, 10, 14}));
         assert(simd_equal(matrix[3], int32x4_t{3, 7, 11, 15}));
+    }
+}
+
+template <auto transpose_matrix_fn>
+void transpose_matrix_int32x6x8_test()
+{
+    {
+        std::array<int32x8_t, 6> matrix{};
+        transpose_matrix_fn(matrix);
+        assert(simd_equal(matrix[0], int32x8_t{}));
+        assert(simd_equal(matrix[1], int32x8_t{}));
+        assert(simd_equal(matrix[2], int32x8_t{}));
+        assert(simd_equal(matrix[3], int32x8_t{}));
+        assert(simd_equal(matrix[4], int32x8_t{}));
+        assert(simd_equal(matrix[5], int32x8_t{}));
+    }
+
+    {
+        std::array<int, 6 * 8> matrix
+        {
+             0,  1,  2,  3,  4,  5,
+             6,  7,  8,  9, 10, 11,
+            12, 13, 14, 15, 16, 17,
+            18, 19, 20, 21, 22, 23,
+
+            24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35,
+            36, 37, 38, 39, 40, 41,
+            42, 43, 44, 45, 46, 47
+        };
+
+        int32x8_t * matrix_ptr = reinterpret_cast<int32x8_t *>(matrix.data());
+        std::span<int32x8_t, 6> matrix_span{matrix_ptr, 6};
+
+        transpose_matrix_fn(matrix_span);
+        assert(simd_equal(matrix_span[0], int32x8_t{0, 6, 12, 18, 24, 30, 36, 42}));
+        assert(simd_equal(matrix_span[1], int32x8_t{1, 7, 13, 19, 25, 31, 37, 43}));
+        assert(simd_equal(matrix_span[2], int32x8_t{2, 8, 14, 20, 26, 32, 38, 44}));
+        assert(simd_equal(matrix_span[3], int32x8_t{3, 9, 15, 21, 27, 33, 39, 45}));
+        assert(simd_equal(matrix_span[4], int32x8_t{4,10, 16, 22, 28, 34, 40, 46}));
+        assert(simd_equal(matrix_span[5], int32x8_t{5,11, 17, 23, 29, 35, 41, 47}));
     }
 }
 
