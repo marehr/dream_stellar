@@ -194,6 +194,20 @@ void transpose_matrix_32x8x8_avx2(std::span<int32x8_t, 8> matrix)
     // print_simd(matrix[3], 4);
 }
 
+void transpose_matrix_32x8x8_omp(std::span<int32x8_t, 8> matrix)
+{
+    #pragma omp simd
+    for (int i = 0; i < 8; ++i)
+    {
+        for (int j = 0; j < i; ++j)
+        {
+            int32_t tmp1 = matrix[i][j];
+            int32_t tmp2 = matrix[j][i];
+            matrix[i][j] = tmp2;
+            matrix[j][i] = tmp1;
+        }
+    }
+}
 
 void transpose_matrix_32x6x4_omp(std::span<int32x4_t, 6> matrix)
 {
