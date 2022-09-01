@@ -28,10 +28,26 @@ inline int32x8_t simd_gather(size_t const window_size, size_t const offset, int 
     return r;
 }
 
+template <typename simd_t>
+simd_t simd_load(int const * mem_addr)
+{
+    struct missing_case{};
+
+    if constexpr (std::is_same_v<simd_t, int32x8_t>)
+    {
+        return (simd_t)_mm256_loadu_si256(reinterpret_cast<__m256i_u const *>(mem_addr));
+    } else
+    {
+        static_assert(std::is_same_v<simd_t, missing_case>);
+        return {};
+    }
+}
+
 inline void simd_store(int * mem_addr, int32x8_t a)
 {
     _mm256_storeu_si256((__m256i *)mem_addr, (__m256i)a);
 }
+
 inline void simd_maskstore(int * mem_addr, int32x8_t mask,  int32x8_t a)
 {
     _mm256_maskstore_epi32((int *)mem_addr, (__m256i)mask, (__m256i)a);
