@@ -1,2 +1,3 @@
 
 add_benchmark(minimiser_window_benchmark.cpp)
+add_benchmark(transpose_matrix_benchmark.cpp)
