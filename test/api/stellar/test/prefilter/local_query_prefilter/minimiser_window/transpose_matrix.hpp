@@ -194,6 +194,31 @@ void transpose_matrix_32x8x8_avx2(std::span<int32x8_t, 8> matrix)
     // print_simd(matrix[3], 4);
 }
 
+void transpose_matrix_32x8x8_avx2_gather(std::span<int32x8_t, 8> matrix)
+{
+    int32_t * matrix_data = reinterpret_cast<int32_t *>(matrix.data());
+
+    int32x8_t offset = int32x8_t{0, 1, 2, 3, 4, 5, 6, 7} * 8;
+
+    __m256i new_row0 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 0), sizeof(int32_t));
+    __m256i new_row1 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 1), sizeof(int32_t));
+    __m256i new_row2 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 2), sizeof(int32_t));
+    __m256i new_row3 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 3), sizeof(int32_t));
+    __m256i new_row4 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 4), sizeof(int32_t));
+    __m256i new_row5 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 5), sizeof(int32_t));
+    __m256i new_row6 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 6), sizeof(int32_t));
+    __m256i new_row7 = _mm256_i32gather_epi32(matrix_data, (__m256i)(offset + 7), sizeof(int32_t));
+
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 0, new_row0);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 1, new_row1);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 2, new_row2);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 3, new_row3);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 4, new_row4);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 5, new_row5);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 6, new_row6);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 7, new_row7);
+}
+
 void transpose_matrix_32x8x8_omp(std::span<int32x8_t, 8> matrix)
 {
     #pragma omp simd
