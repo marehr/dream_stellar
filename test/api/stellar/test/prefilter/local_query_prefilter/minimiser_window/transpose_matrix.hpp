@@ -270,7 +270,7 @@ void transpose_matrix_32x6x4_avx2(std::span<int32x4_t, 6> matrix)
 }
 
 template <auto transpose_matrix_fn>
-void transpose_matrix128_int32x6x4_test()
+void transpose_matrix_int32x6x4_test()
 {
     {
         std::array<int32x4_t, 6> matrix{};
@@ -306,7 +306,7 @@ void transpose_matrix128_int32x6x4_test()
 }
 
 template <auto transpose_matrix_fn>
-void transpose_matrix128_epi32_test()
+void transpose_matrix_int32x4x4_test()
 {
     {
         std::array<int32x4_t, 4> matrix{};
@@ -334,7 +334,7 @@ void transpose_matrix128_epi32_test()
 }
 
 template <auto transpose_matrix_fn>
-void transpose_matrix256_epi32_test()
+void transpose_matrix_int32x8x8_test()
 {
     {
         std::array<int32x8_t, 8> matrix{};
