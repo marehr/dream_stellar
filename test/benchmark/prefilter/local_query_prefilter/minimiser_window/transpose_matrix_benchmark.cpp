@@ -25,7 +25,7 @@ std::vector<value_type> _g_values{[]()
     return values;
 }()};
 
-template <auto transpose_matrix_fn, typename simd_t, size_t columns, size_t rows>
+template <auto transpose_matrix_fn, typename simd_t, size_t rows, size_t columns>
 void transpose_matrix_benchmark(benchmark::State & state)
 {
     constexpr size_t chunk_size = columns * rows;
@@ -65,3 +65,8 @@ BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x8x8_omp, int3
 // BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x8x8_sse4, int32x8_t, 8, 8);
 BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x8x8_avx2, int32x8_t, 8, 8);
 BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x8x8_avx2_gather, int32x8_t, 8, 8);
+
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_omp, int32x4_t, 6, 4);
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_sse4, int32x4_t, 6, 4);
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_avx2, int32x4_t, 6, 4);
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_avx2_gather, int32x4_t, 6, 4);
