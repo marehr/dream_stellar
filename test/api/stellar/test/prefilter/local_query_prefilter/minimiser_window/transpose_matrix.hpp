@@ -308,6 +308,19 @@ void transpose_matrix_32x6x4_avx2(std::span<int32x4_t, 6> matrix)
     _mm256_storeu_si256(matrix_data + 2, new_row2);
 }
 
+void transpose_matrix_32x6x4_avx2_gather(std::span<int32x4_t, 6> matrix)
+{
+    int32_t * matrix_data = reinterpret_cast<int32_t *>(matrix.data());
+
+    __m256i new_row0 = _mm256_i32gather_epi32(matrix_data, (__m256i)(int32x8_t{0, 6, 12, 18, 1, 7, 13, 19}), sizeof(int32_t));
+    __m256i new_row1 = _mm256_i32gather_epi32(matrix_data, (__m256i)(int32x8_t{2, 8, 14, 20, 3, 9, 15, 21}), sizeof(int32_t));
+    __m256i new_row2 = _mm256_i32gather_epi32(matrix_data, (__m256i)(int32x8_t{4,10, 16, 22, 5,11, 17, 23}), sizeof(int32_t));
+
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 0, new_row0);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 1, new_row1);
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(matrix_data) + 2, new_row2);
+}
+
 template <auto transpose_matrix_fn>
 void transpose_matrix_int32x6x4_test()
 {
