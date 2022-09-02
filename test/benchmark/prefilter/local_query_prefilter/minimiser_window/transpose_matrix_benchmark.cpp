@@ -70,3 +70,8 @@ BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_omp, int3
 BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_sse4, int32x4_t, 6, 4);
 BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_avx2, int32x4_t, 6, 4);
 BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x4_avx2_gather, int32x4_t, 6, 4);
+
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x8_omp, int32x8_t, 6, 8);
+// BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x8_sse4, int32x8_t, 6, 8);
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x8_avx2, int32x8_t, 6, 8);
+BENCHMARK_TEMPLATE(transpose_matrix_benchmark, transpose_matrix_32x6x8_avx2_gather, int32x8_t, 6, 8);
