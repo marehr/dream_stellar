@@ -34,5 +34,7 @@ int main()
 
     std::cout << "transpose_matrix_int32x6x8_test<transpose_matrix_32x6x8_omp>" << std::endl;
     transpose_matrix_int32x6x8_test<transpose_matrix_32x6x8_omp>();
+    std::cout << "transpose_matrix_int32x6x8_test<transpose_matrix_32x6x8_avx2>" << std::endl;
+    transpose_matrix_int32x6x8_test<transpose_matrix_32x6x8_avx2>();
     std::cout << std::endl;
 }

@@ -281,6 +281,68 @@ void transpose_matrix_32x6x8_omp(std::span<int32x8_t, 6> matrix)
     }
 }
 
+void transpose_matrix_32x6x8_avx2(std::span<int32x8_t, 6> matrix)
+{
+    __m256i * matrix_data = reinterpret_cast<__m256i *>(matrix.data());
+    __m256i row0 = _mm256_loadu_si256(matrix_data);
+    __m256i row1 = _mm256_loadu_si256(matrix_data + 1);
+    __m256i row2 = _mm256_loadu_si256(matrix_data + 2);
+    __m256i row3 = _mm256_loadu_si256(matrix_data + 3);
+    __m256i row4 = _mm256_loadu_si256(matrix_data + 4);
+    __m256i row5 = _mm256_loadu_si256(matrix_data + 5);
+
+    //  0,  1,  2,  3,  4,  5,
+    //  6,  7,  8,  9, 10, 11,
+    // 12, 13, 14, 15, 16, 17,
+    // 18, 19, 20, 21, 22, 23,
+    // 24, 25, 26, 27, 28, 29,
+    // 30, 31, 32, 33, 34, 35,
+    // 36, 37, 38, 39, 40, 41,
+    // 42, 43, 44, 45, 46, 47,
+
+    //* 0,  1,  2,  3,  4,  5,* 6,  7,
+    //  8,  9, 10, 11,*12, 13, 14, 15,
+    // 16, 17,*18, 19, 20, 21, 22, 23,
+    //*24, 25, 26, 27, 28, 29,*30, 31,
+    // 32, 33, 34, 35,*36, 37, 38, 39,
+    // 40, 41,*42, 43, 44, 45, 46, 47,
+
+    /*0:*/ __m256i s03_lo = _mm256_unpacklo_epi32(row0, row3); //* 0,*24,  1, 25,  4, 28,  5, 29,
+    /*1:*/ __m256i s03_hi = _mm256_unpackhi_epi32(row0, row3); //  2, 26,  3, 27,* 6,*30,  7, 31,
+    /*2:*/ __m256i s14_lo = _mm256_unpacklo_epi32(row1, row4); //  8, 32,  9, 33,*12,*36, 13, 37,
+    /*3:*/ __m256i s14_hi = _mm256_unpackhi_epi32(row1, row4); // 10, 34, 11, 35, 14, 38, 15, 39,
+    /*4:*/ __m256i s25_lo = _mm256_unpacklo_epi32(row2, row5); // 16, 40, 17, 41, 20, 44, 21, 45,
+    /*5:*/ __m256i s25_hi = _mm256_unpackhi_epi32(row2, row5); //*18,*42, 19, 43, 22, 46, 23, 47,
+
+    __m256i t05_lo = _mm256_unpacklo_epi32(s03_lo, s25_hi); // *0,*18,*24,*42,  4, 22, 28, 46,
+    __m256i t05_hi = _mm256_unpackhi_epi32(s03_lo, s25_hi); //  1, 19, 25, 43,  5, 23, 29, 47,
+    __m256i t12_lo = _mm256_unpacklo_epi32(s03_hi, s14_lo); //  2,  8, 26, 32, *6,*12,*30,*36,
+    __m256i t12_hi = _mm256_unpackhi_epi32(s03_hi, s14_lo); //  3,  9, 27, 33,  7, 13, 31, 37,
+    __m256i t34_lo = _mm256_unpacklo_epi32(s14_hi, s25_lo); // 10, 16, 34, 40, 14, 20, 38, 44,
+    __m256i t34_hi = _mm256_unpackhi_epi32(s14_hi, s25_lo); // 11, 17, 35, 41, 15, 21, 39, 45,
+
+    __m256i unsorted_row0 = _mm256_blend_epi32(t05_lo, t12_lo, 0b11110000); // *0,*18,*24,*42, *6,*12,*30,*36,
+    __m256i unsorted_row1 = _mm256_blend_epi32(t05_hi, t12_hi, 0b11110000); //  1, 19, 25, 43,  7, 13, 31, 37
+    __m256i unsorted_row2 = _mm256_blend_epi32(t12_lo, t34_lo, 0b11110000); //  2,  8, 26, 32, 14, 20, 38, 44,
+    __m256i unsorted_row3 = _mm256_blend_epi32(t12_hi, t34_hi, 0b11110000); //  3,  9, 27, 33, 15, 21, 39, 45,
+    __m256i unsorted_row4 = _mm256_blend_epi32(t34_lo, t05_lo, 0b11110000); // 10, 16, 34, 40,  4, 22, 28, 46,
+    __m256i unsorted_row5 = _mm256_blend_epi32(t34_hi, t05_hi, 0b11110000); // 11, 17, 35, 41,  5, 23, 29, 47,
+
+    __m256i new_row0 = _mm256_permutevar8x32_epi32(unsorted_row0, (__m256i)(int32x8_t{0, 4, 5, 1, 2, 6, 7, 3}));
+    __m256i new_row1 = _mm256_permutevar8x32_epi32(unsorted_row1, (__m256i)(int32x8_t{0, 4, 5, 1, 2, 6, 7, 3}));
+    __m256i new_row2 = _mm256_permutevar8x32_epi32(unsorted_row2, (__m256i)(int32x8_t{0, 1, 4, 5, 2, 3, 6, 7}));
+    __m256i new_row3 = _mm256_permutevar8x32_epi32(unsorted_row3, (__m256i)(int32x8_t{0, 1, 4, 5, 2, 3, 6, 7}));
+    __m256i new_row4 = _mm256_permutevar8x32_epi32(unsorted_row4, (__m256i)(int32x8_t{4, 0, 1, 5, 6, 2, 3, 7}));
+    __m256i new_row5 = _mm256_permutevar8x32_epi32(unsorted_row5, (__m256i)(int32x8_t{4, 0, 1, 5, 6, 2, 3, 7}));
+
+    _mm256_storeu_si256(matrix_data + 0, new_row0);
+    _mm256_storeu_si256(matrix_data + 1, new_row1);
+    _mm256_storeu_si256(matrix_data + 2, new_row2);
+    _mm256_storeu_si256(matrix_data + 3, new_row3);
+    _mm256_storeu_si256(matrix_data + 4, new_row4);
+    _mm256_storeu_si256(matrix_data + 5, new_row5);
+}
+
 void transpose_matrix_32x6x4_sse4(std::span<int32x4_t, 6> matrix)
 {
     __m128 s03_lo = _mm_unpacklo_ps((__m128)matrix[0], (__m128)matrix[3]);
