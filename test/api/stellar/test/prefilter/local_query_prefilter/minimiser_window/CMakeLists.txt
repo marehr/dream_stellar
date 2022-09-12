@@ -9,4 +9,4 @@ target_compile_options(transpose_matrix_test PUBLIC "-march=skylake")
 add_api_test (simd_fn_test.cpp)
 target_compile_options(simd_fn_test PUBLIC "-march=skylake")
 
-add_api_test (swizzle_solver.cpp)
+add_subdirectory (swizzle_solver _swizzle_solver)
