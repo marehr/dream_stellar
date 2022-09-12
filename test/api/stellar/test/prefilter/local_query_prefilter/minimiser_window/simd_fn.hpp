@@ -16,6 +16,8 @@ using int32x4_mask_t = int32x4_t;
 template <typename simd_t>
 inline simd_t simd_set(int offset)
 {
+    static_assert(simd_length<simd_t> == 8, "Simd length does not match");
+
     return simd_t{offset, offset, offset, offset, offset, offset, offset, offset};
 }
 
